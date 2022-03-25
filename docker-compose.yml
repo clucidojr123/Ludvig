@@ -1,0 +1,11 @@
+services:
+    rowlet:
+        build: ./rowlet
+        image: rowlet
+    nginx:
+        build: ./nginx
+        image: nginx
+        depends_on:
+            - rowlet
+        ports:
+            - 80:80
