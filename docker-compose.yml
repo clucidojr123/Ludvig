@@ -2,6 +2,10 @@ services:
     rowlet:
         build: ./rowlet
         image: rowlet
+        volumes:
+            - ./rowlet:/usr/rowlet
+            - /usr/rowlet/node_modules
+            - /usr/rowlet/.next
     nginx:
         build: ./nginx
         image: nginx
