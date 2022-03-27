@@ -1,4 +1,12 @@
 services:
+    wario:
+        build: ./wario
+        image: wario
+        volumes:
+            - ./wario:/usr/wario
+            - /usr/wario/node_modules
+        ports:
+            - 3001:3001
     rowlet:
         build: ./rowlet
         image: rowlet
@@ -6,6 +14,8 @@ services:
             - ./rowlet:/usr/rowlet
             - /usr/rowlet/node_modules
             - /usr/rowlet/.next
+        ports:
+            - 3000
     nginx:
         build: ./nginx
         image: nginx
