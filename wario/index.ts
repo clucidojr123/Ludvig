@@ -1,17 +1,35 @@
+import http from "http";
 import express from "express";
+import ShareDB from "sharedb";
+import WebSocket from "ws";
+// @ts-ignore -- no type declarations available at the moment
+import WebSocketJSONStream from "@teamwork/websocket-json-stream";
+
+const PORT = 3001;
 
 async function main() {
+    // Express Web Server
     const app = express();
-    const PORT = 3001;
+    const server = http.createServer(app);
 
+    // Initialize ShareDB
+    const share = new ShareDB();
+
+    // Connect incoming WebSocket connections to ShareDB
+    const wss = new WebSocket.Server({ server: server });
+    wss.on('connection', (ws) => {
+        const stream = new WebSocketJSONStream(ws);
+        share.listen(stream);
+    });
+
+    // Sanity Check
     app.get("/", (req, res, next) => {
         res.send("Hello World");
         return next();
     })
 
-    app.listen(PORT, () => {
-        console.log(`🚀 Wario (ShareDB Server) now listening on port ${PORT}`);
-    });
+    server.listen(PORT);
+    console.log(`🚀 Wario (ShareDB Server) now listening on port ${PORT}`);
 }
 
 main().catch(err => console.log(err));
