@@ -13,7 +13,6 @@ services:
         volumes:
             - ./rowlet:/usr/rowlet
             - /usr/rowlet/node_modules
-            - /usr/rowlet/.next
         ports:
             - 3000
     nginx:
