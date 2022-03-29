@@ -1,0 +1,31 @@
+{
+  "name": "rowlet",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "12.1.1",
+    "quill": "^1.3.7",
+    "quill-delta": "^4.0.1",
+    "react": "17.0.2",
+    "react-dom": "17.0.2",
+    "react-quill": "^1.3.5",
+    "reconnecting-websocket": "^4.4.0",
+    "sharedb": "^2.2.5"
+  },
+  "devDependencies": {
+    "@types/node": "17.0.23",
+    "@types/quill": "^2.0.9",
+    "@types/react": "17.0.43",
+    "@types/react-dom": "17.0.14",
+    "@types/sharedb": "^2.2.0",
+    "eslint": "8.11.0",
+    "eslint-config-next": "12.1.1",
+    "typescript": "4.6.3"
+  }
+}

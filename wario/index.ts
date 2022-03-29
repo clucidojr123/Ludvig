@@ -4,8 +4,13 @@ import ShareDB from "sharedb";
 import WebSocket from "ws";
 // @ts-ignore -- no type declarations available at the moment
 import WebSocketJSONStream from "@teamwork/websocket-json-stream";
+// @ts-ignore -- no type declarations available at the moment
+import richText from "rich-text";
 
 const PORT = 3001;
+
+// Register Quill-Delta OT Type with ShareDB
+ShareDB.types.register(richText.type);
 
 async function main() {
     // Express Web Server

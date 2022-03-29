@@ -1,14 +1,15 @@
 import { Routes, Route } from "react-router-dom";
 import Home from "./components/Home";
-// mport Counter from "./components/Counter";
-import './App.css';
+import Counter from "./components/Counter";
+import Document from "./components/Document";
 
 function App() {
   return (
     <div className="App">
       <Routes>
         <Route path="/" element={<Home />} />
-        {/* <Route path="about" element={<Counter />} /> */}
+        <Route path="counter" element={<Counter />} />
+        <Route path="document" element={<Document />} />
       </Routes>
     </div>
   );

@@ -1,15 +1,12 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React from 'react'
 
 function Home() {
   return (
     <>
       <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
+        <h1>
           Home Page
-        </p>
+        </h1>
         <a
           className="App-link"
           href="https://reactjs.org"
