@@ -12,7 +12,7 @@ const Document = () => {
     useEffect(() => {
         const getDoc = async () => {
             const newDoc = new SDoc<DeltaOp[]>("examples", "text", "rich-text");
-            await newDoc.subscribeDocument([{ insert: "Start Typing!" }]);
+            await newDoc.subscribeDocument([{ insert: "" }]);
             setDoc(newDoc);
             setContent(new Delta(newDoc.doc.data));
             newDoc.setDocOnOp((op, source) => {
@@ -38,7 +38,7 @@ const Document = () => {
         <div>
             {/*
             // @ts-ignore */}
-            <ReactQuill value={content} onChange={handleChange} />
+            <ReactQuill placeholder="Start Typing..." value={content} onChange={handleChange} />
         </div>
     );
 };
