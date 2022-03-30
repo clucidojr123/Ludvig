@@ -19,11 +19,11 @@ async function main() {
     const app = express();
     const server = http.createServer(app);
 
-    const testDel = new Delta([
-        { retain: 5 }, { insert: "a" },
-        { retain: 4 }, { delete: 10 },
-        { insert: "Hello", attributes: { bold: true } },
-    ]);
+    // const testDel = new Delta([
+    //     { retain: 5 }, { insert: "a" },
+    //     { retain: 4 }, { delete: 10 },
+    //     { insert: "Hello", attributes: { bold: true } },
+    // ]);
 
     // Initialize ShareDB
     const share = new ShareDB();
@@ -63,14 +63,17 @@ async function main() {
         doc.on("op", () => {
             res.write(JSON.stringify({ data: doc.data.ops }));
         });
+        console.log(`Connected To Doc: ${req.params.id}\n`);
     });
 
     app.post("/op/:id", async (req, res) => {
         const doc = connection.get("documents", req.params.id);
         await fetchDocument(doc);
         if (doc.type && Array.isArray(req.body)) {
-            const ops = req.body.flat();
-            await submitOp(doc, ops);
+            console.log(`Submitting Ops: \n${JSON.stringify(req.body)}\n`);
+            req.body.forEach(async (val) => {
+                await submitOp(doc, val);
+            });
             res.status(200).send("Success").end();
         } else {
             res.status(400).end();
@@ -80,7 +83,8 @@ async function main() {
     app.get("/doc/:id", async (req, res) => {
         const doc = connection.get("documents", req.params.id);
         await fetchDocument(doc);
-        if (doc) {
+        if (doc.type) {
+            console.log(`Fetched Doc: ${req.params.id}\n`);
             const result = new QuillDeltaToHtmlConverter(doc.data.ops);
             const rendered = result.convert();
             res.send(rendered).end();
