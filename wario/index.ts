@@ -13,14 +13,23 @@ async function main() {
     const app = express();
     const server = http.createServer(app);
 
-    app.use(cors());
+    app.use(
+        cors({
+            allowedHeaders: ["Content-Type", "Cache-Control", "Connection"],
+        })
+    );
 
     app.use(function (req, res, next) {
-        res.setHeader('X-CSE356', '62030fd851710446f0836f62');
+        res.setHeader("X-CSE356", "62030fd851710446f0836f62");
         next();
     });
 
     app.use(express.json());
+    app.use(
+        express.urlencoded({
+            extended: true,
+        })
+    );
 
     // Sanity Check
     app.get("/", (req, res, next) => {
@@ -28,15 +37,53 @@ async function main() {
         return next();
     });
 
-    // CUSTOM ROUTES FOR GRADING SCRIPT
+    // SHAREDB COUNTER EXAMPLE
+    app.get("/counter", async (req, res, next) => {
+        res.writeHead(200, {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+        });
+        res.flushHeaders();
+        // @ts-ignore
+        const doc = new SDoc<{ numClicks: number }>("counter", "test", "json0");
+        await doc.subscribeDocument({ numClicks: 0 });
+        res.write(
+            `data: ${JSON.stringify({ numClicks: doc.doc.data.numClicks })}\n\n`
+        );
+        doc.setDocOnOp(() => {
+            res.write(
+                `data: ${JSON.stringify({
+                    numClicks: doc.doc.data.numClicks,
+                })}\n\n`
+            );
+        });
+        console.log("Connected To COUNTER Doc");
+    });
+
+    app.post("/counter", async (req, res) => {
+        // @ts-ignore
+        const doc = new SDoc<{ numClicks: number }>("counter", "test", "json0");
+        await doc.subscribeDocument({ numClicks: 0 });
+        console.log(JSON.stringify(req.body));
+        if (doc.type && Array.isArray(req.body)) {
+            console.log("Submitting COUNTER Op");
+            await doc.submitOp(req.body);
+            res.status(200).send("Success").end();
+        } else {
+            res.status(400).end();
+        }
+    });
+    // END SHAREDB COUNTER EXAMPLE
+
     app.get("/connect/:id", async (req, res) => {
         res.writeHead(200, {
             "Content-Type": "text/event-stream",
             "Cache-Control": "no-cache",
             Connection: "keep-alive",
         });
-        const doc = new SDoc<Delta>("documents", req.params.id, "rich-text");
-        await doc.subscribeDocument(new Delta([{insert:''}]));
+        const doc = new SDoc<Delta>("documents", "text", "rich-text");
+        await doc.subscribeDocument(new Delta([{ insert: "" }]));
         res.write(`data: ${JSON.stringify({ content: doc.doc.data.ops })}\n\n`);
         doc.setDocOnOp(() => {
             res.write(`data: ${JSON.stringify(doc.doc.data.ops)}\n\n`);
@@ -45,13 +92,17 @@ async function main() {
     });
 
     app.post("/op/:id", async (req, res) => {
-        const doc = new SDoc<Delta>("documents", req.params.id, "rich-text");
-        await doc.subscribeDocument(new Delta([{insert:''}]));
+        const doc = new SDoc<Delta>("documents", "text", "rich-text");
+        await doc.subscribeDocument(new Delta([{ insert: "" }]));
         if (doc.type && Array.isArray(req.body)) {
-            console.log(`Submitting Ops to ${req.params.id}: \n${JSON.stringify(req.body)}\n`);
+            console.log(
+                `Submitting Ops to ${req.params.id}: \n${JSON.stringify(
+                    req.body
+                )}\n`
+            );
             req.body.forEach(async (val) => {
                 await doc.submitOp(val);
-            });
+            })
             res.status(200).send("Success").end();
         } else {
             res.status(400).end();
@@ -59,10 +110,14 @@ async function main() {
     });
 
     app.get("/doc/:id", async (req, res) => {
-        const doc = new SDoc<Delta>("documents", req.params.id, "rich-text");
-        await doc.subscribeDocument(new Delta([{insert:''}]));
+        const doc = new SDoc<Delta>("documents", "text", "rich-text");
+        await doc.subscribeDocument(new Delta([{ insert: "" }]));
         if (doc.type) {
-            console.log(`Fetched Doc: ${req.params.id}\nFetched Ops: ${JSON.stringify(doc.doc.data.ops)}\n`);
+            console.log(
+                `Fetched Doc: ${req.params.id}\nFetched Ops: ${JSON.stringify(
+                    doc.doc.data.ops
+                )}\n`
+            );
             const result = new QuillDeltaToHtmlConverter(doc.doc.data.ops);
             let rendered = result.convert();
             if (!rendered) {
@@ -73,10 +128,11 @@ async function main() {
             res.status(400).end();
         }
     });
-    // END CUSTOM ROUTES FOR GRADING SCRIPT
 
     server.listen(PORT);
-    console.log(`🚀 Wario (Express Backend Server) now listening on port ${PORT}`);
+    console.log(
+        `🚀 Wario (Express Backend Server) now listening on port ${PORT}`
+    );
 }
 
 main().catch((err) => console.log(err));

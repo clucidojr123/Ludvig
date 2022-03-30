@@ -13,7 +13,7 @@ RUN npm install
 COPY . .
 
 # Expose the listening port
-EXPOSE 80
+EXPOSE 3000
 
 # TODO figure out prod/dev config
 # Start application

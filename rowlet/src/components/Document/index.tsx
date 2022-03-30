@@ -1,27 +1,28 @@
 import React, { useState, useEffect } from "react";
 import "react-quill/dist/quill.snow.css";
 import ReactQuill from "react-quill";
-import { DeltaOperation as DeltaOp } from "quill";
 import Delta from "quill-delta";
-import { SDoc } from "../../util/sharedb";
 
 const Document = () => {
-    const [doc, setDoc] = useState<SDoc<DeltaOp[]>>();
     const [content, setContent] = useState<Delta>();
 
     useEffect(() => {
-        const getDoc = async () => {
-            const newDoc = new SDoc<DeltaOp[]>("examples", "text", "rich-text");
-            await newDoc.subscribeDocument([{ insert: "" }]);
-            setDoc(newDoc);
-            setContent(new Delta(newDoc.doc.data));
-            newDoc.setDocOnOp((op, source) => {
-                if (op && !source) {
-                    setContent(new Delta(newDoc.doc.data));
-                }
-            });
+        const evInstance = new EventSource(
+            "http://localhost:3001/connect/swag"
+        );
+        window.addEventListener("beforeunload", () => {
+            evInstance.close();
+        });
+        evInstance.onmessage = (e) => {
+            console.log("Recieved New Message");
+            const data = JSON.parse(e.data);
+            console.log(data);
+            if (data.content) {
+                setContent(new Delta(data.content));
+            } else {
+                setContent(new Delta(data));
+            }
         };
-        getDoc();
     }, []);
 
     const handleChange = async (
@@ -29,16 +30,27 @@ const Document = () => {
         delta: Delta,
         source: string
     ) => {
-        if (doc && delta && source === "user") {
-            await doc.submitOp(delta);
+        if (delta && source === "user") {
+            await fetch("http://localhost:3001/op/swag", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(delta.ops),
+            });
         }
     };
 
     return (
         <div>
-            {/*
-            // @ts-ignore */}
-            <ReactQuill placeholder="Start Typing..." value={content} onChange={handleChange} />
+            {content ? (
+                /*
+                // @ts-ignore */
+                <ReactQuill placeholder="Start Typing..." value={content} onChange={handleChange}
+                />
+            ) : (
+                <p>Loading...</p>
+            )}
         </div>
     );
 };

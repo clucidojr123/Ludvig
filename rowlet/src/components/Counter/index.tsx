@@ -1,43 +1,35 @@
-import React, { useState, useEffect } from 'react'
-import { SDoc } from "../../util/sharedb";
-
-interface CounterData {
-    numClicks: number;
-}
+import React, { useState, useEffect } from "react";
 
 const Counter = () => {
-    const [doc, setDoc] = useState<SDoc<CounterData>>();
-    const [numClicks, setNumClicks] = useState<number>(0);
+    const [numClicks, setNumClicks] = useState<number>();
 
     useEffect(() => {
-        const getDoc = async () => {
-            // @ts-ignore
-            const newDoc = new SDoc<CounterData>("examples", "counter", "json0");
-            await newDoc.subscribeDocument({ numClicks: 0 });
-            newDoc.setDocOnOp(() => {
-                setNumClicks(newDoc.doc.data.numClicks);
-            })
-            setDoc(newDoc);
-            setNumClicks(newDoc.doc.data.numClicks);
+        const evInstance = new EventSource("http://localhost:3001/counter");
+        evInstance.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            setNumClicks(data.numClicks);
         };
-        getDoc();
     }, []);
 
     const handleClick = async () => {
-        if (doc) {
-            await doc.submitOp([{ p: ["numClicks"], na: 1 }]);
-        }
+        await fetch("http://localhost:3001/counter", {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify([{ p: ["numClicks"], na: 1 }]),
+        });
     };
 
     return (
         <div>
-            {doc ? (
+            {numClicks !== undefined ? (
                 <>
                     <div>You Clicked {numClicks} times.</div>
                     <button onClick={() => handleClick()}>+1</button>
                 </>
             ) : (
-                <div>Connection to Server Failed.</div>
+                <div>Loading...</div>
             )}
         </div>
     );

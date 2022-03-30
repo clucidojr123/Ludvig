@@ -5,7 +5,7 @@ import WebSocket from "ws";
 import richText from "rich-text";
 
 const wsInstance = new WebSocket(
-    "ws://localhost:5001",
+    "ws://luigi:5001",
 );
 
 // @ts-ignore
@@ -48,6 +48,7 @@ export class SDoc<T> {
 
     submitOp(data: any) {
         return new Promise<void>((resolve, reject) => {
+            console.log(JSON.stringify(this.doc.data));
             this.doc.submitOp(data, {}, (error) => {
                 if (error) {
                     reject(error);

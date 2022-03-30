@@ -1,4 +1,21 @@
+version: '2'
+
 services:
+    mongo:
+        image: mongo
+        restart: always
+        ports:
+            - 27017
+    luigi:
+        build: ./luigi
+        image: luigi
+        volumes:
+            - ./luigi:/usr/luigi
+            - /usr/luigi/node_modules
+        ports:
+            - 5001:5001
+        depends_on:
+            - mongo
     wario:
         build: ./wario
         image: wario
@@ -7,18 +24,18 @@ services:
             - /usr/wario/node_modules
         ports:
             - 3001:3001
-    rowlet:
-        build: ./rowlet
-        image: rowlet
-        volumes:
-            - ./rowlet:/usr/rowlet
-            - /usr/rowlet/node_modules
-        ports:
-            - 3000
-    nginx:
-        build: ./nginx
-        image: nginx
-        depends_on:
-            - rowlet
-        ports:
-            - 80:80
+    # rowlet:
+    #     build: ./rowlet
+    #     image: rowlet
+    #     volumes:
+    #         - ./rowlet:/usr/rowlet
+    #         - /usr/rowlet/node_modules
+    #     ports:
+    #         - 3000:3000
+    # nginx:
+    #     build: ./nginx
+    #     image: nginx
+    #     depends_on:
+    #         - rowlet
+    #     ports:
+    #         - 80:80
