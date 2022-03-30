@@ -1,4 +1,5 @@
 import http from "http";
+import cors from "cors";
 import express from "express";
 import ShareDB from "sharedb";
 import WebSocket from "ws";
@@ -37,6 +38,8 @@ async function main() {
         share.listen(stream);
     });
 
+    app.use(cors());
+
     app.use(function (req, res, next) {
         res.setHeader('X-CSE356', '62030fd851710446f0836f62');
         next();
@@ -59,9 +62,9 @@ async function main() {
         });
         const doc = connection.get("documents", req.params.id);
         await subscribeDocument(doc, [], "rich-text");
-        res.write(JSON.stringify({ data: { content: doc.data.ops } }));
+        res.write(`data: ${JSON.stringify({ content: doc.data.ops })}\n\n`);
         doc.on("op", () => {
-            res.write(JSON.stringify({ data: doc.data.ops }));
+            res.write(`data: ${JSON.stringify(doc.data.ops)}\n\n`);
         });
         console.log(`Connected To Doc: ${req.params.id}\n`);
     });
@@ -84,7 +87,7 @@ async function main() {
         const doc = connection.get("documents", req.params.id);
         await fetchDocument(doc);
         if (doc.type) {
-            console.log(`Fetched Doc: ${req.params.id}\n`);
+            console.log(`Fetched Doc: ${req.params.id}\nFetched Ops: ${JSON.stringify(doc.data.ops)}\n`);
             const result = new QuillDeltaToHtmlConverter(doc.data.ops);
             let rendered = result.convert();
             if (!rendered) {
