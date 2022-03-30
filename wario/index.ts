@@ -86,7 +86,10 @@ async function main() {
         if (doc.type) {
             console.log(`Fetched Doc: ${req.params.id}\n`);
             const result = new QuillDeltaToHtmlConverter(doc.data.ops);
-            const rendered = result.convert();
+            let rendered = result.convert();
+            if (!rendered) {
+                rendered = "<p></p>";
+            }
             res.send(rendered).end();
         } else {
             res.status(400).end();
