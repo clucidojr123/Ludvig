@@ -9,7 +9,7 @@ import richText from "rich-text";
 import Delta from "quill-delta";
 import { QuillDeltaToHtmlConverter } from "quill-delta-to-html";
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 // Register Quill-Delta OT Type with ShareDB
 ShareDB.types.register(richText.type);
@@ -70,7 +70,7 @@ async function main() {
         const doc = connection.get("documents", req.params.id);
         await fetchDocument(doc);
         if (doc.type && Array.isArray(req.body)) {
-            console.log(`Submitting Ops: \n${JSON.stringify(req.body)}\n`);
+            console.log(`Submitting Ops to ${req.params.id}: \n${JSON.stringify(req.body)}\n`);
             req.body.forEach(async (val) => {
                 await submitOp(doc, val);
             });
