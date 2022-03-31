@@ -5,7 +5,7 @@ import Delta from "quill-delta";
 import mongoose from "mongoose";
 // @ts-ignore -- no type declarations available at the moment
 import { QuillDeltaToHtmlConverter } from "quill-delta-to-html";
-import { SDoc, wsInstance } from "./sharedb";
+import { SDoc, wsInstance, fetchDocument } from "./sharedb";
 import { Connection } from "./connection";
 
 const PORT = process.env.PORT || 3001;
@@ -63,8 +63,8 @@ async function main() {
             });
             await connect.save();
         }
-        // TODO CHANGE TO AWAIT
         const doc = connect.connection.get("documents", "text");
+        await fetchDocument(doc);
         res.write(`data: ${JSON.stringify({ content: doc.data.ops })}\n\n`);
         res.on("close", () => {
             Connection.updateOne(
@@ -84,6 +84,7 @@ async function main() {
         let connect = await Connection.findOne({ name: req.params.id });
         if (connect) {
             const doc = connect.connection.get("documents", "text");
+            await fetchDocument(doc);
             if (doc.type && Array.isArray(req.body)) {
                 console.log(
                     `Submitting Ops to ${req.params.id}: \n${JSON.stringify(
@@ -111,6 +112,7 @@ async function main() {
         let connect = await Connection.findOne({ name: req.params.id });
         if (connect) {
             const doc = connect.connection.get("documents", "text");
+            await fetchDocument(doc);
             if (doc.type) {
                 console.log(
                     `Fetched Doc: ${req.params.id}\nFetched Ops: ${JSON.stringify(

@@ -63,3 +63,16 @@ export class SDoc<T> {
         this.doc.on("op", callback);
     }
 }
+
+export const fetchDocument = (doc: ShareDB.Doc) => {
+    return new Promise<void>((resolve, reject) => {
+        doc.fetch((error) => {
+            if (error) {
+                console.error(error);
+                reject(error);
+            }
+            resolve();
+            return;
+        });
+    });
+}
