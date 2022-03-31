@@ -4,7 +4,7 @@ import WebSocket from "ws";
 // @ts-ignore
 import richText from "rich-text";
 
-const wsInstance = new WebSocket(
+export const wsInstance = new WebSocket(
     "ws://luigi:5001",
 );
 

@@ -2,9 +2,11 @@ import http from "http";
 import cors from "cors";
 import express from "express";
 import Delta from "quill-delta";
+import mongoose from "mongoose";
 // @ts-ignore -- no type declarations available at the moment
 import { QuillDeltaToHtmlConverter } from "quill-delta-to-html";
-import { SDoc } from "./sharedb";
+import { SDoc, wsInstance } from "./sharedb";
+import { Connection } from "./connection";
 
 const PORT = process.env.PORT || 3001;
 
@@ -12,6 +14,8 @@ async function main() {
     // Express Web Server
     const app = express();
     const server = http.createServer(app);
+
+    await mongoose.connect("mongodb://mongo:27017/ludvig");
 
     app.use(
         cors({
@@ -40,93 +44,88 @@ async function main() {
         return next();
     });
 
-    // SHAREDB COUNTER EXAMPLE
-    app.get("/counter", async (req, res, next) => {
-        res.writeHead(200, {
-            "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache",
-            Connection: "keep-alive",
-        });
-        res.flushHeaders();
-        // @ts-ignore
-        const doc = new SDoc<{ numClicks: number }>("counter", "test", "json0");
-        await doc.subscribeDocument({ numClicks: 0 });
-        res.write(
-            `data: ${JSON.stringify({ numClicks: doc.doc.data.numClicks })}\n\n`
-        );
-        doc.setDocOnOp(() => {
-            res.write(
-                `data: ${JSON.stringify({
-                    numClicks: doc.doc.data.numClicks,
-                })}\n\n`
-            );
-        });
-        console.log("Connected To COUNTER Doc");
-    });
-
-    app.post("/counter", async (req, res) => {
-        // @ts-ignore
-        const doc = new SDoc<{ numClicks: number }>("counter", "test", "json0");
-        await doc.subscribeDocument({ numClicks: 0 });
-        console.log(JSON.stringify(req.body));
-        if (doc.type && Array.isArray(req.body)) {
-            console.log("Submitting COUNTER Op");
-            await doc.submitOp(req.body);
-            res.status(200).send("Success");
-        } else {
-            res.status(400);
-        }
-    });
-    // END SHAREDB COUNTER EXAMPLE
-
     app.get("/connect/:id", async (req, res) => {
         res.writeHead(200, {
             "Content-Type": "text/event-stream",
             "Cache-Control": "no-cache",
             Connection: "keep-alive",
         });
-        const doc = new SDoc<Delta>("documents", "text", "rich-text");
-        await doc.subscribeDocument(new Delta([{ insert: "" }]));
-        res.write(`data: ${JSON.stringify({ content: doc.doc.data.ops })}\n\n`);
-        doc.doc.on("op batch", (op) => {
-            res.write(`data: [${JSON.stringify(op)}]\n\n`);
+        res.flushHeaders();
+        let connect = await Connection.findOne({ name: req.params.id });
+        if (connect) {
+            connect.activeStreams.push(res);
+        } else {
+            connect = new Connection({
+                name: req.params.id,
+                // @ts-ignore
+                connection: new sharedb.Connection(wsInstance),
+                activeStreams: [res],
+            });
+            await connect.save();
+        }
+        // TODO CHANGE TO AWAIT
+        const doc = connect.connection.get("documents", "text");
+        res.write(`data: ${JSON.stringify({ content: doc.data.ops })}\n\n`);
+        res.on("close", () => {
+            Connection.updateOne(
+                { name: req.params.id },
+                {
+                    $pullAll: {
+                        activeStreams: [res],
+                    },
+                }
+            );
         });
+        await connect.save();
         console.log(`Connected To Doc: ${req.params.id}\n`);
     });
 
     app.post("/op/:id", async (req, res) => {
-        const doc = new SDoc<Delta>("documents", "text", "rich-text");
-        await doc.subscribeDocument(new Delta([{ insert: "" }]));
-        if (doc.type && Array.isArray(req.body)) {
-            console.log(
-                `Submitting Ops to ${req.params.id}: \n${JSON.stringify(
-                    req.body
-                )}\n`
-            );
-            req.body.forEach(async (val) => {
-                await doc.submitOp(val);
-            })
-            res.status(200).send("Success");
+        let connect = await Connection.findOne({ name: req.params.id });
+        if (connect) {
+            const doc = connect.connection.get("documents", "text");
+            if (doc.type && Array.isArray(req.body)) {
+                console.log(
+                    `Submitting Ops to ${req.params.id}: \n${JSON.stringify(
+                        req.body
+                    )}\n`
+                );
+                req.body.forEach((val) => {
+                    doc.submitOp(val);
+                });
+                connect.activeStreams.forEach((val) => {
+                    if (!val.writableEnded) {
+                        val.write(`data: ${JSON.stringify(req.body)}\n\n`);
+                    }
+                });
+                res.status(200).send("Success");
+            } else {
+                res.status(400);
+            }
         } else {
             res.status(400);
         }
     });
 
     app.get("/doc/:id", async (req, res) => {
-        const doc = new SDoc<Delta>("documents", "text", "rich-text");
-        await doc.subscribeDocument(new Delta([{ insert: "" }]));
-        if (doc.type) {
-            console.log(
-                `Fetched Doc: ${req.params.id}\nFetched Ops: ${JSON.stringify(
-                    doc.doc.data.ops
-                )}\n`
-            );
-            const result = new QuillDeltaToHtmlConverter(doc.doc.data.ops);
-            let rendered = result.convert();
-            if (!rendered) {
-                rendered = "<p></p>";
+        let connect = await Connection.findOne({ name: req.params.id });
+        if (connect) {
+            const doc = connect.connection.get("documents", "text");
+            if (doc.type) {
+                console.log(
+                    `Fetched Doc: ${req.params.id}\nFetched Ops: ${JSON.stringify(
+                        doc.data.ops
+                    )}\n`
+                );
+                const result = new QuillDeltaToHtmlConverter(doc.data.ops);
+                let rendered = result.convert();
+                if (!rendered) {
+                    rendered = "<p></p>";
+                }
+                res.send(rendered);
+            } else {
+                res.status(400);
             }
-            res.send(rendered);
         } else {
             res.status(400);
         }
