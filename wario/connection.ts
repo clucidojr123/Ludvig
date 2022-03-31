@@ -5,7 +5,6 @@ import express from "express";
 export interface IConnection extends Document {
     name: string;
     connection: sharedb.Connection;
-    activeStreams: express.Response[];
 }
 
 const connectionSchema = new Schema<IConnection>(
@@ -18,10 +17,10 @@ const connectionSchema = new Schema<IConnection>(
             type: Object,
             required: true,
         },
-        activeStreams: {
-            type: [Object],
-            required: true,
-        },
+        // activeStreams: {
+        //     type: [Object],
+        //     required: true,
+        // },
     },
     { timestamps: true }
 );

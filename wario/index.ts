@@ -6,14 +6,23 @@ import mongoose from "mongoose";
 // @ts-ignore -- no type declarations available at the moment
 import { QuillDeltaToHtmlConverter } from "quill-delta-to-html";
 import { SDoc, wsInstance, fetchDocument } from "./sharedb";
-import { Connection } from "./connection";
+import ShareDB from "sharedb/lib/client";
+// import { Connection } from "./connection";
 
 const PORT = process.env.PORT || 3001;
+
+interface Connection {
+    name: string;
+    connection: ShareDB.Connection;
+    stream: express.Response;
+}
 
 async function main() {
     // Express Web Server
     const app = express();
     const server = http.createServer(app);
+
+    let currentConnections: Connection[] = [];
 
     await mongoose.connect("mongodb://mongo:27017/ludvig");
 
@@ -51,38 +60,34 @@ async function main() {
             Connection: "keep-alive",
         });
         res.flushHeaders();
-        let connect = await Connection.findOne({ name: req.params.id });
+        let connect = currentConnections.find(val => val.name === req.params.id);
         if (connect) {
-            connect.activeStreams.push(res);
+            res.status(400).end();
         } else {
-            connect = new Connection({
+            connect = {
                 name: req.params.id,
                 // @ts-ignore
-                connection: new sharedb.Connection(wsInstance),
-                activeStreams: [res],
-            });
-            await connect.save();
+                connection: new ShareDB.Connection(wsInstance),
+                stream: res
+            };
+            currentConnections.push(connect);
         }
         const doc = connect.connection.get("documents", "text");
         await fetchDocument(doc);
         res.write(`data: ${JSON.stringify({ content: doc.data.ops })}\n\n`);
         res.on("close", () => {
-            Connection.updateOne(
-                { name: req.params.id },
-                {
-                    $pullAll: {
-                        activeStreams: [res],
-                    },
-                }
-            );
+            currentConnections = currentConnections.filter((val) => {
+                val.name !== req.params.id;
+            })
         });
-        await connect.save();
         console.log(`Connected To Doc: ${req.params.id}\n`);
     });
 
     app.post("/op/:id", async (req, res) => {
-        let connect = await Connection.findOne({ name: req.params.id });
-        if (connect) {
+        let connect = currentConnections.find(val => val.name === req.params.id);
+        if (!connect) {
+            res.status(400).end();
+        } else {
             const doc = connect.connection.get("documents", "text");
             await fetchDocument(doc);
             if (doc.type && Array.isArray(req.body)) {
@@ -94,23 +99,23 @@ async function main() {
                 req.body.forEach((val) => {
                     doc.submitOp(val);
                 });
-                connect.activeStreams.forEach((val) => {
-                    if (!val.writableEnded) {
-                        val.write(`data: ${JSON.stringify(req.body)}\n\n`);
+                currentConnections.forEach((val) => {
+                    if (!val.stream.writableEnded) {
+                        val.stream.write(`data: ${JSON.stringify(req.body)}\n\n`);
                     }
                 });
                 res.status(200).send("Success");
             } else {
                 res.status(400);
             }
-        } else {
-            res.status(400);
         }
     });
 
     app.get("/doc/:id", async (req, res) => {
-        let connect = await Connection.findOne({ name: req.params.id });
-        if (connect) {
+        let connect = currentConnections.find(val => val.name === req.params.id);
+        if (!connect) {
+            res.status(400).end();
+        } else {
             const doc = connect.connection.get("documents", "text");
             await fetchDocument(doc);
             if (doc.type) {
@@ -128,8 +133,6 @@ async function main() {
             } else {
                 res.status(400);
             }
-        } else {
-            res.status(400);
         }
     });
 
