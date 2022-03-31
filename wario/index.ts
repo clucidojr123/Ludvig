@@ -31,6 +31,9 @@ async function main() {
         })
     );
 
+    const initialDoc = new SDoc<Delta>("documents", "text", "rich-text");
+    await initialDoc.subscribeDocument(new Delta([{ insert: "" }]));
+
     // Sanity Check
     app.get("/", (req, res, next) => {
         res.send("gigabossofswag-wario");
@@ -69,9 +72,9 @@ async function main() {
         if (doc.type && Array.isArray(req.body)) {
             console.log("Submitting COUNTER Op");
             await doc.submitOp(req.body);
-            res.status(200).send("Success").end();
+            res.status(200).send("Success");
         } else {
-            res.status(400).end();
+            res.status(400);
         }
     });
     // END SHAREDB COUNTER EXAMPLE
@@ -85,8 +88,8 @@ async function main() {
         const doc = new SDoc<Delta>("documents", "text", "rich-text");
         await doc.subscribeDocument(new Delta([{ insert: "" }]));
         res.write(`data: ${JSON.stringify({ content: doc.doc.data.ops })}\n\n`);
-        doc.setDocOnOp(() => {
-            res.write(`data: ${JSON.stringify(doc.doc.data.ops)}\n\n`);
+        doc.doc.on("op batch", (op) => {
+            res.write(`data: [${JSON.stringify(op)}]\n\n`);
         });
         console.log(`Connected To Doc: ${req.params.id}\n`);
     });
@@ -103,9 +106,9 @@ async function main() {
             req.body.forEach(async (val) => {
                 await doc.submitOp(val);
             })
-            res.status(200).send("Success").end();
+            res.status(200).send("Success");
         } else {
-            res.status(400).end();
+            res.status(400);
         }
     });
 
@@ -123,9 +126,9 @@ async function main() {
             if (!rendered) {
                 rendered = "<p></p>";
             }
-            res.send(rendered).end();
+            res.send(rendered);
         } else {
-            res.status(400).end();
+            res.status(400);
         }
     });
 

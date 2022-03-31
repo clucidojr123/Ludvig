@@ -48,7 +48,7 @@ export class SDoc<T> {
 
     submitOp(data: any) {
         return new Promise<void>((resolve, reject) => {
-            console.log(JSON.stringify(this.doc.data));
+            // console.log(JSON.stringify(this.doc.data));
             this.doc.submitOp(data, {}, (error) => {
                 if (error) {
                     reject(error);
