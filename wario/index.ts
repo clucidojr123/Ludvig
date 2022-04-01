@@ -5,7 +5,7 @@ import Delta from "quill-delta";
 import mongoose from "mongoose";
 // @ts-ignore -- no type declarations available at the moment
 import { QuillDeltaToHtmlConverter } from "quill-delta-to-html";
-import { SDoc, wsInstance, fetchDocument } from "./sharedb";
+import { SDoc, wsInstance, fetchDocument, ShareDBConnection } from "./sharedb";
 import ShareDB from "sharedb/lib/client";
 // import { Connection } from "./connection";
 
@@ -13,7 +13,6 @@ const PORT = process.env.PORT || 3001;
 
 interface Connection {
     name: string;
-    connection: ShareDB.Connection;
     stream: express.Response;
 }
 
@@ -61,34 +60,33 @@ async function main() {
         });
         res.flushHeaders();
         let connect = currentConnections.find(val => val.name === req.params.id);
-        if (connect) {
-            res.status(400).end();
-        } else {
+        if (!connect) {
             connect = {
                 name: req.params.id,
-                // @ts-ignore
-                connection: new ShareDB.Connection(wsInstance),
                 stream: res
             };
             currentConnections.push(connect);
         }
-        const doc = connect.connection.get("documents", "text");
+        const doc = ShareDBConnection.get("documents", "text");
         await fetchDocument(doc);
         res.write(`data: ${JSON.stringify({ content: doc.data.ops })}\n\n`);
         res.on("close", () => {
             currentConnections = currentConnections.filter((val) => {
-                val.name !== req.params.id;
+                if (val.name === req.params.id) {
+                    console.log(`Closing connection: ${req.params.id}\n`);
+                    return false;
+                }
+                return true;
             })
         });
         console.log(`Connected To Doc: ${req.params.id}\n`);
     });
-
     app.post("/op/:id", async (req, res) => {
         let connect = currentConnections.find(val => val.name === req.params.id);
         if (!connect) {
             res.status(400).end();
         } else {
-            const doc = connect.connection.get("documents", "text");
+            const doc = ShareDBConnection.get("documents", "text");
             await fetchDocument(doc);
             if (doc.type && Array.isArray(req.body)) {
                 console.log(
@@ -101,6 +99,7 @@ async function main() {
                 });
                 currentConnections.forEach((val) => {
                     if (!val.stream.writableEnded) {
+                        console.log(`Sending Ops to ${val.name}`);
                         val.stream.write(`data: ${JSON.stringify(req.body)}\n\n`);
                     }
                 });
@@ -116,7 +115,7 @@ async function main() {
         if (!connect) {
             res.status(400).end();
         } else {
-            const doc = connect.connection.get("documents", "text");
+            const doc = ShareDBConnection.get("documents", "text");
             await fetchDocument(doc);
             if (doc.type) {
                 console.log(

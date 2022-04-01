@@ -9,7 +9,7 @@ export const wsInstance = new WebSocket(
 );
 
 // @ts-ignore
-const connection = new ShareDB.Connection(wsInstance);
+export const ShareDBConnection = new ShareDB.Connection(wsInstance);
 
 ShareDB.types.register(richText.type);
 
@@ -18,7 +18,7 @@ export class SDoc<T> {
     type: OTType;
 
     constructor(collection: string, id: string, type: OTType) {
-        this.doc = connection.get(collection, id) as ShareDB.Doc<T>;
+        this.doc = ShareDBConnection.get(collection, id) as ShareDB.Doc<T>;
         this.type = type;
     }
 
