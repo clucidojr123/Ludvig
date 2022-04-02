@@ -43,7 +43,7 @@ async function main() {
         })
     );
 
-    const initialDoc = new SDoc<Delta>("documents", "text", "rich-text");
+    const initialDoc = new SDoc<Delta>("documents", "swag", "rich-text");
     await initialDoc.subscribeDocument(new Delta([{ insert: "" }]));
 
     // Sanity Check
@@ -67,7 +67,7 @@ async function main() {
             };
             currentConnections.push(connect);
         }
-        const doc = ShareDBConnection.get("documents", "text");
+        const doc = ShareDBConnection.get("documents", "swag");
         await fetchDocument(doc);
         res.write(`data: ${JSON.stringify({ content: doc.data.ops })}\n\n`);
         res.on("close", () => {
@@ -86,7 +86,7 @@ async function main() {
         if (!connect) {
             res.status(400).end();
         } else {
-            const doc = ShareDBConnection.get("documents", "text");
+            const doc = ShareDBConnection.get("documents", "swag");
             await fetchDocument(doc);
             if (doc.type && Array.isArray(req.body)) {
                 console.log(
@@ -98,7 +98,7 @@ async function main() {
                     doc.submitOp(val);
                 });
                 currentConnections.forEach((val) => {
-                    if (!val.stream.writableEnded) {
+                    if (!val.stream.writableEnded && val.name !== req.params.id) {
                         console.log(`Sending Ops to ${val.name}`);
                         val.stream.write(`data: ${JSON.stringify(req.body)}\n\n`);
                     }
@@ -115,7 +115,7 @@ async function main() {
         if (!connect) {
             res.status(400).end();
         } else {
-            const doc = ShareDBConnection.get("documents", "text");
+            const doc = ShareDBConnection.get("documents", "swag");
             await fetchDocument(doc);
             if (doc.type) {
                 console.log(

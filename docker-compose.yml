@@ -26,14 +26,14 @@ services:
             - 3001:3001
         depends_on:
             - mongo
-    # rowlet:
-    #     build: ./rowlet
-    #     image: rowlet
-    #     volumes:
-    #         - ./rowlet:/usr/rowlet
-    #         - /usr/rowlet/node_modules
-    #     ports:
-    #         - 3000:3000
+    rowlet:
+        build: ./rowlet
+        image: rowlet
+        volumes:
+            - ./rowlet:/usr/rowlet
+            - /usr/rowlet/node_modules
+        ports:
+            - 3000:3000
     # nginx:
     #     build: ./nginx
     #     image: nginx
