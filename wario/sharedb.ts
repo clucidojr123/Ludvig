@@ -4,9 +4,9 @@ import WebSocket from "ws";
 // @ts-ignore
 import richText from "rich-text";
 
-export const wsInstance = new WebSocket(
-    "ws://luigi:5001",
-);
+const LUIGI_URI = process.env.LUIGI_URI || "ws://luigi:5001";
+
+export const wsInstance = new WebSocket(LUIGI_URI);
 
 // @ts-ignore
 export const ShareDBConnection = new ShareDB.Connection(wsInstance);
@@ -75,4 +75,4 @@ export const fetchDocument = (doc: ShareDB.Doc) => {
             return;
         });
     });
-}
+};

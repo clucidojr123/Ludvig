@@ -12,41 +12,38 @@ services:
         volumes:
             - ./luigi:/usr/luigi
         ports:
-            - 5001
+            - 5001:5001
         depends_on:
             - mongo
         environment:
             - PORT=5001
             - MONGO_URI=mongodb://mongo:27017/ludvig
-        command: npm run prod  
+        command: npm run dev  
     wario:
         build: ./wario
         image: wario
         volumes:
             - ./wario:/usr/wario
         ports:
-            - 3001
+            - 3001:3001
         depends_on:
             - mongo
             - luigi
         environment:
             - PORT=3001
             - LUIGI_URI=ws://luigi:5001
-        command: npm run prod
+        command: npm run dev
     rowlet:
-        build: ./rowlet
+        build: 
+            context: ./rowlet
+            dockerfile: Dockerfile.development
         image: rowlet
         volumes:
             - ./rowlet:/usr/rowlet
         ports:
-            - 80:80
+            - 3000:3000
         depends_on:
             - wario
-    # using multistage dockerfile in rowlet for now
-    # nginx:
-    #     build: ./nginx
-    #     image: nginx
-    #     depends_on:
-    #         - rowlet
-    #     ports:
-    #         - 80:80
+        environment:
+            - REACT_APP_WARIO_URI=http://wario:3001
+        command: npm start

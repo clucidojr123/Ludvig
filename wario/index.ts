@@ -2,12 +2,9 @@ import http from "http";
 import cors from "cors";
 import express from "express";
 import Delta from "quill-delta";
-import mongoose from "mongoose";
 // @ts-ignore -- no type declarations available at the moment
 import { QuillDeltaToHtmlConverter } from "quill-delta-to-html";
-import { SDoc, wsInstance, fetchDocument, ShareDBConnection } from "./sharedb";
-import ShareDB from "sharedb/lib/client";
-// import { Connection } from "./connection";
+import { SDoc, fetchDocument, ShareDBConnection } from "./sharedb";
 
 const PORT = process.env.PORT || 3001;
 
@@ -22,8 +19,6 @@ async function main() {
     const server = http.createServer(app);
 
     let currentConnections: Connection[] = [];
-
-    await mongoose.connect("mongodb://mongo:27017/ludvig");
 
     app.use(
         cors({

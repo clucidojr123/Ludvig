@@ -5,6 +5,8 @@ import Delta, { Op } from "quill-delta";
 import { nanoid } from "nanoid";
 import { debounce } from "throttle-debounce";
 
+const WARIO_URI = process.env.REACT_APP_WARIO_URI || "";
+
 const Document = () => {
     const [connectID, setConnectID] = useState<string>(nanoid());
     const [queue, setQueue] = useState<Op[][]>([]);
@@ -13,7 +15,7 @@ const Document = () => {
     const sendData = debounce(300, async () => {
         if (queue.length) {
             console.log("Sending ops");
-            await fetch(`http://localhost:3001/op/${connectID}`, {
+            await fetch(`${WARIO_URI}/op/${connectID}`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -56,7 +58,7 @@ const Document = () => {
                 "text-change",
                 function (delta: Delta, oldDelta: Delta, source: string) {
                     if (source === "user") {
-                        const current : Delta = quill.getContents();
+                        const current: Delta = quill.getContents();
                         queue.push(oldDelta.diff(current).ops);
                         sendData();
                     }
@@ -68,9 +70,7 @@ const Document = () => {
     return (
         <div>
             <div>
-                <div>
-                    <div ref={quillRef} />
-                </div>
+                <div ref={quillRef} />
             </div>
         </div>
     );

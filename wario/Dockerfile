@@ -14,7 +14,3 @@ COPY . .
 
 # Expose the listening port
 EXPOSE 3001
-
-# TODO figure out prod/dev config
-# Start application
-CMD [ "npm", "run", "dev" ]
