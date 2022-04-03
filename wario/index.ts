@@ -98,9 +98,9 @@ async function main() {
                         val.stream.write(`data: ${JSON.stringify(req.body)}\n\n`);
                     }
                 });
-                res.status(200).send("Success");
+                res.status(200).send("Success").end();
             } else {
-                res.status(400);
+                res.status(400).end();
             }
         }
     });
@@ -123,9 +123,9 @@ async function main() {
                 if (!rendered) {
                     rendered = "<p></p>";
                 }
-                res.send(rendered);
+                res.send(rendered).end();
             } else {
-                res.status(400);
+                res.status(400).end();
             }
         }
     });
