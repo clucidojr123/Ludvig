@@ -41,16 +41,25 @@ async function main() {
     );
 
     const initialDoc = ShareDBConnection.get("documents", "swag");
-    await fetchDocument(initialDoc);
-    // If doc.type is undefined, the document has not been created
-    if (!initialDoc.type) {
-        initialDoc.create(new Delta([{ insert: "" }]), "rich-text", (error) => {
-            if (error) {
-                console.error(error);
-                throw new Error;
-            }
-        });
-    }
+    initialDoc.fetch((err) => {
+        // If doc.type is undefined, the document has not been created
+        if (err) {
+            console.error(err);
+            return;
+        }
+        if (!initialDoc.type) {
+            initialDoc.create(
+                new Delta([{ insert: "" }]),
+                "rich-text",
+                (error) => {
+                    if (error) {
+                        console.error(error);
+                        return;
+                    }
+                }
+            );
+        }
+    });
 
     // Sanity Check
     app.get("/", (req, res, next) => {
@@ -76,23 +85,25 @@ async function main() {
             currentConnections.push(connect);
         }
         const doc = ShareDBConnection.get("documents", "swag");
-        doc.preventCompose = true;
-        await fetchDocument(doc);
-        console.log(`Got Initial Ops:\n ${JSON.stringify(doc.data.ops)}`);
-        const writeString = "data:"+JSON.stringify({ content: doc.data.ops })+"\n\n";
-        res.write(writeString);
-        res.on("close", () => {
-            currentConnections = currentConnections.filter((val) => {
-                if (val.name === req.params.id) {
-                    console.log(`Closing connection: ${req.params.id}\n`);
-                    val.stream.end();
-                    return false;
-                }
-                return true;
+        doc.fetch((err) => {
+            console.log(`Got Initial Ops:\n ${JSON.stringify(doc.data.ops)}`);
+            const writeString =
+                "data:" + JSON.stringify({ content: doc.data.ops }) + "\n\n";
+            res.write(writeString);
+            res.on("close", () => {
+                currentConnections = currentConnections.filter((val) => {
+                    if (val.name === req.params.id) {
+                        console.log(`Closing connection: ${req.params.id}\n`);
+                        val.stream.end();
+                        return false;
+                    }
+                    return true;
+                });
             });
+            console.log(`Connected To Doc: ${req.params.id}\n`);
         });
-        console.log(`Connected To Doc: ${req.params.id}\n`);
     });
+
     app.post("/op/:id", async (req, res) => {
         let connect = currentConnections.find(
             (val) => val.name === req.params.id
@@ -101,29 +112,32 @@ async function main() {
             res.status(400).end();
         } else {
             const doc = ShareDBConnection.get("documents", "swag");
-            doc.preventCompose = true;
-            await fetchDocument(doc);
-            if (doc.type && Array.isArray(req.body)) {
-                console.log(
-                    `Submitting Ops to ${req.params.id}: \n${JSON.stringify(
-                        req.body
-                    )}\n`
-                );
-                await submitBatchOps(doc, req.body);
-                currentConnections.forEach((val) => {
-                    if (
-                        !val.stream.writableEnded &&
-                        val.name !== req.params.id
-                    ) {
-                        console.log(`Sending Ops to ${val.name}`);
-                        const writeString = "data:"+JSON.stringify(req.body)+"\n\n";
-                        val.stream.write(writeString);
-                    }
-                });
-                res.status(200).send("Success").end();
-            } else {
-                res.status(400).end();
-            }
+            doc.fetch((err) => {
+                if (doc.type && Array.isArray(req.body)) {
+                    console.log(
+                        `Submitting Ops to ${req.params.id}: \n${JSON.stringify(
+                            req.body
+                        )}\n`
+                    );
+                    req.body.forEach((val) => {
+                        doc.submitOp(val);
+                    });
+                    currentConnections.forEach((val) => {
+                        if (
+                            !val.stream.writableEnded &&
+                            val.name !== req.params.id
+                        ) {
+                            console.log(`Sending Ops to ${val.name}`);
+                            const writeString =
+                                "data:" + JSON.stringify(req.body) + "\n\n";
+                            val.stream.write(writeString);
+                        }
+                    });
+                    res.status(200).send("Success").end();
+                } else {
+                    res.status(400).end();
+                }
+            });
         }
     });
 
@@ -135,22 +149,23 @@ async function main() {
             res.status(400).end();
         } else {
             const doc = ShareDBConnection.get("documents", "swag");
-            await fetchDocument(doc);
-            if (doc.type) {
-                console.log(
-                    `Fetched Doc: ${
-                        req.params.id
-                    }\nFetched Ops: ${JSON.stringify(doc.data.ops)}\n`
-                );
-                const result = new QuillDeltaToHtmlConverter(doc.data.ops);
-                let rendered = result.convert();
-                if (!rendered) {
-                    rendered = "<p></p>";
+            doc.fetch((err) => {
+                if (doc.type) {
+                    console.log(
+                        `Fetched Doc: ${
+                            req.params.id
+                        }\nFetched Ops: ${JSON.stringify(doc.data.ops)}\n`
+                    );
+                    const result = new QuillDeltaToHtmlConverter(doc.data.ops);
+                    let rendered = result.convert();
+                    if (!rendered) {
+                        rendered = "<p></p>";
+                    }
+                    res.send(rendered).end();
+                } else {
+                    res.status(400).end();
                 }
-                res.send(rendered).end();
-            } else {
-                res.status(400).end();
-            }
+            });
         }
     });
 
