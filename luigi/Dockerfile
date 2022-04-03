@@ -7,9 +7,9 @@ WORKDIR /usr/luigi
 COPY package.json package.json
 COPY package-lock.json package-lock.json
 
-RUN npm install -g typescript
-
 RUN npm ci
+
+RUN npm run build
 
 # Copy over repo
 COPY . .
