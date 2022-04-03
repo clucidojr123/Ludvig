@@ -45,6 +45,7 @@
     ]
   },
   "devDependencies": {
+    "@types/quill": "^2.0.9",
     "@types/sharedb": "^2.2.0",
     "@types/throttle-debounce": "^2.1.0"
   }

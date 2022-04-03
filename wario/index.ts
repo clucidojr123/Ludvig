@@ -9,6 +9,7 @@ import {
     fetchDocument,
     ShareDBConnection,
     submitBatchOps,
+    submitOp,
 } from "./sharedb";
 
 const PORT = process.env.PORT || 3001;
@@ -39,8 +40,17 @@ async function main() {
         })
     );
 
-    const initialDoc = new SDoc<Delta>("documents", "swag", "rich-text");
-    await initialDoc.subscribeDocument(new Delta([{ insert: "" }]));
+    const initialDoc = ShareDBConnection.get("documents", "swag");
+    await fetchDocument(initialDoc);
+    // If doc.type is undefined, the document has not been created
+    if (!initialDoc.type) {
+        initialDoc.create(new Delta([{ insert: "" }]), "rich-text", (error) => {
+            if (error) {
+                console.error(error);
+                throw new Error;
+            }
+        });
+    }
 
     // Sanity Check
     app.get("/", (req, res, next) => {
@@ -66,7 +76,9 @@ async function main() {
             currentConnections.push(connect);
         }
         const doc = ShareDBConnection.get("documents", "swag");
+        doc.preventCompose = true;
         await fetchDocument(doc);
+        console.log(`Got Initial Ops:\n ${JSON.stringify(doc.data.ops)}`);
         res.write(`data: ${JSON.stringify({ content: doc.data.ops })}\n\n`);
         res.on("close", () => {
             currentConnections = currentConnections.filter((val) => {
@@ -88,6 +100,7 @@ async function main() {
             res.status(400).end();
         } else {
             const doc = ShareDBConnection.get("documents", "swag");
+            doc.preventCompose = true;
             await fetchDocument(doc);
             if (doc.type && Array.isArray(req.body)) {
                 console.log(
@@ -96,7 +109,6 @@ async function main() {
                     )}\n`
                 );
                 await submitBatchOps(doc, req.body);
-
                 currentConnections.forEach((val) => {
                     if (
                         !val.stream.writableEnded &&
