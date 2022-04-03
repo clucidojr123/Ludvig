@@ -4,7 +4,12 @@ import express from "express";
 import Delta from "quill-delta";
 // @ts-ignore -- no type declarations available at the moment
 import { QuillDeltaToHtmlConverter } from "quill-delta-to-html";
-import { SDoc, fetchDocument, ShareDBConnection } from "./sharedb";
+import {
+    SDoc,
+    fetchDocument,
+    ShareDBConnection,
+    submitBatchOps,
+} from "./sharedb";
 
 const PORT = process.env.PORT || 3001;
 
@@ -20,11 +25,7 @@ async function main() {
 
     let currentConnections: Connection[] = [];
 
-    app.use(
-        cors({
-            allowedHeaders: ["Content-Type", "Cache-Control", "Connection"],
-        })
-    );
+    app.use(cors());
 
     app.use(function (req, res, next) {
         res.setHeader("X-CSE356", "62030fd851710446f0836f62");
@@ -54,11 +55,13 @@ async function main() {
             Connection: "keep-alive",
         });
         res.flushHeaders();
-        let connect = currentConnections.find(val => val.name === req.params.id);
+        let connect = currentConnections.find(
+            (val) => val.name === req.params.id
+        );
         if (!connect) {
             connect = {
                 name: req.params.id,
-                stream: res
+                stream: res,
             };
             currentConnections.push(connect);
         }
@@ -69,15 +72,18 @@ async function main() {
             currentConnections = currentConnections.filter((val) => {
                 if (val.name === req.params.id) {
                     console.log(`Closing connection: ${req.params.id}\n`);
+                    val.stream.end();
                     return false;
                 }
                 return true;
-            })
+            });
         });
         console.log(`Connected To Doc: ${req.params.id}\n`);
     });
     app.post("/op/:id", async (req, res) => {
-        let connect = currentConnections.find(val => val.name === req.params.id);
+        let connect = currentConnections.find(
+            (val) => val.name === req.params.id
+        );
         if (!connect) {
             res.status(400).end();
         } else {
@@ -89,13 +95,17 @@ async function main() {
                         req.body
                     )}\n`
                 );
-                req.body.forEach((val) => {
-                    doc.submitOp(val);
-                });
+                await submitBatchOps(doc, req.body);
+
                 currentConnections.forEach((val) => {
-                    if (!val.stream.writableEnded && val.name !== req.params.id) {
+                    if (
+                        !val.stream.writableEnded &&
+                        val.name !== req.params.id
+                    ) {
                         console.log(`Sending Ops to ${val.name}`);
-                        val.stream.write(`data: ${JSON.stringify(req.body)}\n\n`);
+                        val.stream.write(
+                            `data: ${JSON.stringify(req.body)}\n\n`
+                        );
                     }
                 });
                 res.status(200).send("Success").end();
@@ -106,7 +116,9 @@ async function main() {
     });
 
     app.get("/doc/:id", async (req, res) => {
-        let connect = currentConnections.find(val => val.name === req.params.id);
+        let connect = currentConnections.find(
+            (val) => val.name === req.params.id
+        );
         if (!connect) {
             res.status(400).end();
         } else {
@@ -114,9 +126,9 @@ async function main() {
             await fetchDocument(doc);
             if (doc.type) {
                 console.log(
-                    `Fetched Doc: ${req.params.id}\nFetched Ops: ${JSON.stringify(
-                        doc.data.ops
-                    )}\n`
+                    `Fetched Doc: ${
+                        req.params.id
+                    }\nFetched Ops: ${JSON.stringify(doc.data.ops)}\n`
                 );
                 const result = new QuillDeltaToHtmlConverter(doc.data.ops);
                 let rendered = result.convert();
