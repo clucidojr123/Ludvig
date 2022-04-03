@@ -44,6 +44,4 @@ services:
             - 3000:3000
         depends_on:
             - wario
-        environment:
-            - REACT_APP_WARIO_URI=http://wario:3001
         command: npm start

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import "quill/dist/quill.snow.css";
 import { useQuill } from "react-quilljs";
 import Delta, { Op } from "quill-delta";
@@ -7,10 +7,17 @@ import { debounce } from "throttle-debounce";
 
 const WARIO_URI = process.env.REACT_APP_WARIO_URI || "";
 
+// Quill Modules
+const modules = {
+    toolbar: [
+      ['bold', 'italic', 'underline', 'strike'],
+    ],
+};
+
 const Document = () => {
-    const [connectID, setConnectID] = useState<string>(nanoid());
+    const [connectID] = useState<string>(nanoid());
     const [queue, setQueue] = useState<Op[][]>([]);
-    const { quill, quillRef } = useQuill();
+    const { quill, quillRef } = useQuill({ modules });
 
     const sendData = debounce(300, async () => {
         if (queue.length) {
@@ -22,11 +29,11 @@ const Document = () => {
                 },
                 body: `${JSON.stringify(queue)}`,
             });
-            setQueue([]);
+            queue.length = 0;
         }
     });
 
-    const handleNewData = (e: MessageEvent<any>) => {
+    const handleIncomingData = (e: MessageEvent<any>) => {
         const data = JSON.parse(e.data);
         if (!data || !quill) {
             console.log(
@@ -44,31 +51,31 @@ const Document = () => {
         }
     };
 
+    const onTextChange = (delta: Delta, oldDelta: Delta, source: string) => {
+        if (source === "user") {
+            const current: Delta = quill.getContents();
+            queue.push(oldDelta.diff(current).ops);
+            sendData();
+        }
+    };
+
     useEffect(() => {
         if (quill) {
             console.log("Connection ID: " + connectID);
             const evInstance = new EventSource(
-                `http://localhost:3001/connect/${connectID}`
+                `${WARIO_URI}/connect/${connectID}`
             );
-            evInstance.onmessage = handleNewData;
+            evInstance.onmessage = handleIncomingData;
             window.addEventListener("beforeunload", () => {
                 evInstance.close();
             });
-            quill.on(
-                "text-change",
-                function (delta: Delta, oldDelta: Delta, source: string) {
-                    if (source === "user") {
-                        const current: Delta = quill.getContents();
-                        queue.push(oldDelta.diff(current).ops);
-                        sendData();
-                    }
-                }
-            );
+            quill.on("text-change", onTextChange);
         }
     }, [quill]);
 
     return (
         <div>
+            GIGA BOSS (OF SWAG)
             <div>
                 <div ref={quillRef} />
             </div>

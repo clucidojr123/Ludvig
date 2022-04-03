@@ -11,3 +11,5 @@ RUN npm install
 
 # Copy over repo
 COPY . .
+
+ENV REACT_APP_WARIO_URI http://localhost:3001
