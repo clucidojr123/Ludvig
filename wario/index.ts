@@ -88,7 +88,7 @@ async function main() {
         }
         doc.fetch((err) => {
             console.log(`Got Initial Ops:\n ${JSON.stringify(doc.data.ops)}`);
-            res.write("data:" + JSON.stringify({ content: doc.data.ops }) + "\n\n");
+            res.write(`data: ${JSON.stringify({ content: doc.data.ops })}\n\n`);
             res.on("close", () => {
                 currentConnections = currentConnections.filter((val) => {
                     if (val.name === req.params.id) {
@@ -126,7 +126,7 @@ async function main() {
                             val.name !== req.params.id
                         ) {
                             console.log(`Sending Ops to ${val.name}\n`);
-                            val.stream.write("data:" + JSON.stringify(req.body) + "\n\n");
+                            val.stream.write(`data: ${JSON.stringify(req.body)}\n\n`);
                         }
                     });
                     res.status(200).send("Success").end();
