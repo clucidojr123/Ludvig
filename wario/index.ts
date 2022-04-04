@@ -40,15 +40,15 @@ async function main() {
         })
     );
 
-    const initialDoc = ShareDBConnection.get("documents", "swag");
-    initialDoc.fetch((err) => {
+    const doc = ShareDBConnection.get("documents", "swag");
+    doc.fetch((err) => {
         // If doc.type is undefined, the document has not been created
         if (err) {
             console.error(err);
             return;
         }
-        if (!initialDoc.type) {
-            initialDoc.create(
+        if (!doc.type) {
+            doc.create(
                 new Delta([{ insert: "" }]),
                 "rich-text",
                 (error) => {
@@ -83,8 +83,9 @@ async function main() {
                 stream: res,
             };
             currentConnections.push(connect);
+        } else {
+            connect.stream = res
         }
-        const doc = ShareDBConnection.get("documents", "swag");
         doc.fetch((err) => {
             console.log(`Got Initial Ops:\n ${JSON.stringify(doc.data.ops)}`);
             const writeString =
@@ -111,7 +112,6 @@ async function main() {
         if (!connect) {
             res.status(400).end();
         } else {
-            const doc = ShareDBConnection.get("documents", "swag");
             doc.fetch((err) => {
                 if (doc.type && Array.isArray(req.body)) {
                     console.log(
@@ -127,9 +127,10 @@ async function main() {
                             !val.stream.writableEnded &&
                             val.name !== req.params.id
                         ) {
-                            console.log(`Sending Ops to ${val.name}`);
+                            console.log(`Sending Ops to ${val.name}\n`);
                             const writeString =
                                 "data:" + JSON.stringify(req.body) + "\n\n";
+                            console.log(writeString);
                             val.stream.write(writeString);
                         }
                     });
@@ -148,7 +149,6 @@ async function main() {
         if (!connect) {
             res.status(400).end();
         } else {
-            const doc = ShareDBConnection.get("documents", "swag");
             doc.fetch((err) => {
                 if (doc.type) {
                     console.log(
