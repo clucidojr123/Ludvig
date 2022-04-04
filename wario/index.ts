@@ -63,8 +63,7 @@ async function main() {
 
     // Sanity Check
     app.get("/", (req, res, next) => {
-        res.send("gigabossofswag-wario");
-        return next();
+        res.send("gigabossofswag-wario").end();
     });
 
     app.get("/connect/:id", async (req, res) => {
@@ -84,10 +83,9 @@ async function main() {
             };
             currentConnections.push(connect);
         } else {
-            connect.stream = res
+            connect.stream = res;
         }
         doc.fetch((err) => {
-            console.log(`Got Initial Ops:\n ${JSON.stringify(doc.data.ops)}`);
             res.write(`data: ${JSON.stringify({ content: doc.data.ops })}\n\n`);
             res.on("close", () => {
                 currentConnections = currentConnections.filter((val) => {
