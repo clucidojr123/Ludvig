@@ -76,3 +76,26 @@ export const fetchDocument = (doc: ShareDB.Doc) => {
         });
     });
 };
+
+export const submitOp = (doc: ShareDB.Doc, data: any) => {
+    return new Promise<void>((resolve, reject) => {
+        doc.submitOp(data, {}, (error) => {
+            if (error) {
+                reject(error);
+            } else {
+                resolve();
+            }
+        });
+    });
+}
+
+export const submitBatchOps = (doc: ShareDB.Doc, data: any[]) => {
+    return new Promise<void>((resolve, reject) => {
+        try {
+            data.forEach(async val => await submitOp(doc, val));
+            resolve();
+        } catch {
+            reject();
+        }
+    });
+}

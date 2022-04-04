@@ -1,37 +1,27 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import "quill/dist/quill.snow.css";
-import { useQuill } from "react-quilljs";
+import Quill from "quill";
 import Delta, { Op } from "quill-delta";
 import { nanoid } from "nanoid";
 import { debounce } from "throttle-debounce";
 
 const WARIO_URI = process.env.REACT_APP_WARIO_URI || "";
 
-// Quill Modules
-const modules = {
-    toolbar: [
-      ['bold', 'italic', 'underline', 'strike'],
-    ],
-};
-
 const Document = () => {
     const [connectID] = useState<string>(nanoid());
-    const [queue, setQueue] = useState<Op[][]>([]);
-    const { quill, quillRef } = useQuill({ modules });
+    const [quill, setQuill] = useState<Quill>();
+    const quillRef = useRef(null);
 
-    const sendData = debounce(300, async () => {
-        if (queue.length) {
-            console.log("Sending ops");
-            await fetch(`${WARIO_URI}/op/${connectID}`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: `${JSON.stringify(queue)}`,
-            });
-            queue.length = 0;
-        }
-    });
+    const sendData = async (ops: any[]) => {
+        console.log(`Sending Ops: \n${JSON.stringify(ops)}`);
+        await fetch(`${WARIO_URI}/op/${connectID}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: `[${JSON.stringify(ops)}]`,
+        });
+    };
 
     const handleIncomingData = (e: MessageEvent<any>) => {
         const data = JSON.parse(e.data);
@@ -41,23 +31,32 @@ const Document = () => {
             );
         } else if (data.content) {
             console.log("Recieved Initial Ops");
-            quill.setContents(new Delta(data.content));
+            quill.setContents(data.content);
         } else if (Array.isArray(data)) {
-            console.log("Recieved New Ops");
             const newDeltas = data as Array<Op[]>;
+            console.log(`Recieved New Ops: \n${JSON.stringify(newDeltas)}`);
             newDeltas.forEach((val) => {
-                quill.updateContents(new Delta(val));
+                // @ts-ignore
+                quill.updateContents(val);
             });
         }
     };
 
     const onTextChange = (delta: Delta, oldDelta: Delta, source: string) => {
         if (source === "user") {
-            const current: Delta = quill.getContents();
-            queue.push(oldDelta.diff(current).ops);
-            sendData();
+            // queue.push(delta.ops);
+            sendData(delta.ops);
         }
     };
+
+    useEffect(() => {
+        setQuill(
+            new Quill("#editor", {
+                modules: { toolbar: "#toolbar" },
+                theme: "snow",
+            })
+        );
+    }, [quillRef]);
 
     useEffect(() => {
         if (quill) {
@@ -69,6 +68,7 @@ const Document = () => {
             window.addEventListener("beforeunload", () => {
                 evInstance.close();
             });
+            // @ts-ignore
             quill.on("text-change", onTextChange);
         }
     }, [quill]);
@@ -76,9 +76,12 @@ const Document = () => {
     return (
         <div>
             GIGA BOSS (OF SWAG)
-            <div>
-                <div ref={quillRef} />
+            <div id="toolbar">
+                <button className="ql-bold">Bold</button>
+                <button className="ql-italic">Italic</button>
             </div>
+            <div id="editor" ref={quillRef}></div>
+            <script src="https://cdn.quilljs.com/1.0.0/quill.js"></script>
         </div>
     );
 };
