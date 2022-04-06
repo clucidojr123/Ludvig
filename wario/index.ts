@@ -2,32 +2,25 @@ import http from "http";
 import cors from "cors";
 import express from "express";
 import Delta from "quill-delta";
-// @ts-ignore -- no type declarations available at the moment
-import { QuillDeltaToHtmlConverter } from "quill-delta-to-html";
-import {
-    SDoc,
-    fetchDocument,
-    ShareDBConnection,
-    submitBatchOps,
-    submitOp,
-} from "./sharedb";
+import session from "express-session";
+import MongoStore from "connect-mongo";
+import { ShareDBConnection } from "./util/sharedb";
+import userRouter from "./routes/user";
+import documentRouter from "./routes/document";
 
 const PORT = process.env.PORT || 3001;
-
-interface Connection {
-    name: string;
-    stream: express.Response;
-}
+const MONGO_URI = process.env.MONGO_URI || "mongodb://mongo:27017/ludvig";
 
 async function main() {
-    // Express Web Server
     const app = express();
     const server = http.createServer(app);
 
-    let currentConnections: Connection[] = [];
+    app.use(cors({
+        exposedHeaders: ["Content-Type", "Cache-Control", "Connection", "X-CSE356"],
+        credentials: true,
+    }));
 
-    app.use(cors());
-
+    // Add CSE 356 Header
     app.use(function (req, res, next) {
         res.setHeader("X-CSE356", "62030fd851710446f0836f62");
         next();
@@ -40,7 +33,22 @@ async function main() {
         })
     );
 
-    const doc = ShareDBConnection.get("documents", "swag");
+    // Set up sessions
+    app.use(
+        session({
+            resave: false,
+            saveUninitialized: false,
+            secret: "Archibald Castillo",
+            store: new MongoStore({
+                mongoUrl: MONGO_URI,
+                touchAfter: 24 * 3600, // Lazy update session
+                ttl: 14 * 24 * 60 * 60, // TTL = 14 Days
+            }),
+        })
+    );
+
+    // TODO get rid of this
+    const doc = ShareDBConnection.get("documents", "test");
     doc.fetch((err) => {
         // If doc.type is undefined, the document has not been created
         if (err) {
@@ -48,120 +56,26 @@ async function main() {
             return;
         }
         if (!doc.type) {
-            doc.create(
-                new Delta([{ insert: "" }]),
-                "rich-text",
-                (error) => {
-                    if (error) {
-                        console.error(error);
-                        return;
-                    }
+            doc.create(new Delta([{ insert: "" }]), "rich-text", (error) => {
+                if (error) {
+                    console.error(error);
+                    return;
                 }
-            );
+            });
         }
     });
+    // END of get rid of this
 
     // Sanity Check
     app.get("/", (req, res, next) => {
         res.send("gigabossofswag-wario").end();
     });
 
-    app.get("/connect/:id", async (req, res) => {
-        res.writeHead(200, {
-            "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache",
-            Connection: "keep-alive",
-        });
-        res.flushHeaders();
-        let connect = currentConnections.find(
-            (val) => val.name === req.params.id
-        );
-        if (!connect) {
-            connect = {
-                name: req.params.id,
-                stream: res,
-            };
-            currentConnections.push(connect);
-        } else {
-            connect.stream = res;
-        }
-        doc.fetch((err) => {
-            res.write(`data: ${JSON.stringify({ content: doc.data.ops })}\n\n`);
-            res.on("close", () => {
-                currentConnections = currentConnections.filter((val) => {
-                    if (val.name === req.params.id) {
-                        console.log(`Closing connection: ${req.params.id}\n`);
-                        val.stream.end();
-                        return false;
-                    }
-                    return true;
-                });
-            });
-            console.log(`Connected To Doc: ${req.params.id}\n`);
-        });
-    });
+    // Add routes
+    app.use("/", userRouter);
+    app.use("/", documentRouter);
 
-    app.post("/op/:id", async (req, res) => {
-        let connect = currentConnections.find(
-            (val) => val.name === req.params.id
-        );
-        if (!connect) {
-            res.status(400).end();
-        } else {
-            doc.fetch((err) => {
-                if (doc.type && Array.isArray(req.body)) {
-                    console.log(
-                        `Submitting Ops to ${req.params.id}: \n${JSON.stringify(
-                            req.body
-                        )}\n`
-                    );
-                    req.body.forEach((val) => {
-                        doc.submitOp(val);
-                    });
-                    currentConnections.forEach((val) => {
-                        if (
-                            !val.stream.writableEnded &&
-                            val.name !== req.params.id
-                        ) {
-                            console.log(`Sending Ops to ${val.name}\n`);
-                            val.stream.write(`data: ${JSON.stringify(req.body)}\n\n`);
-                        }
-                    });
-                    res.status(200).send("Success").end();
-                } else {
-                    res.status(400).end();
-                }
-            });
-        }
-    });
-
-    app.get("/doc/:id", async (req, res) => {
-        let connect = currentConnections.find(
-            (val) => val.name === req.params.id
-        );
-        if (!connect) {
-            res.status(400).end();
-        } else {
-            doc.fetch((err) => {
-                if (doc.type) {
-                    console.log(
-                        `Fetched Doc: ${
-                            req.params.id
-                        }\nFetched Ops: ${JSON.stringify(doc.data.ops)}\n`
-                    );
-                    const result = new QuillDeltaToHtmlConverter(doc.data.ops);
-                    let rendered = result.convert();
-                    if (!rendered) {
-                        rendered = "<p></p>";
-                    }
-                    res.send(rendered).end();
-                } else {
-                    res.status(400).end();
-                }
-            });
-        }
-    });
-
+    // Start HTTP Server
     server.listen(PORT);
     console.log(
         `🚀 Wario (Express Backend Server) now listening on port ${PORT}`
