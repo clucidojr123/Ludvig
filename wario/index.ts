@@ -7,6 +7,8 @@ import MongoStore from "connect-mongo";
 import { ShareDBConnection } from "./util/sharedb";
 import userRouter from "./routes/user";
 import documentRouter from "./routes/document";
+import { nanoid } from "nanoid";
+import passport from "./util/passport";
 
 const PORT = process.env.PORT || 3001;
 const MONGO_URI = process.env.MONGO_URI || "mongodb://mongo:27017/ludvig";
@@ -15,10 +17,18 @@ async function main() {
     const app = express();
     const server = http.createServer(app);
 
-    app.use(cors({
-        exposedHeaders: ["Content-Type", "Cache-Control", "Connection", "X-CSE356"],
-        credentials: true,
-    }));
+    // Enable CORS and expose needed headers
+    app.use(
+        cors({
+            exposedHeaders: [
+                "Content-Type",
+                "Cache-Control",
+                "Connection",
+                "X-CSE356",
+            ],
+            credentials: true,
+        })
+    );
 
     // Add CSE 356 Header
     app.use(function (req, res, next) {
@@ -36,6 +46,7 @@ async function main() {
     // Set up sessions
     app.use(
         session({
+            genid: () => nanoid(),
             resave: false,
             saveUninitialized: false,
             secret: "Archibald Castillo",
@@ -46,6 +57,13 @@ async function main() {
             }),
         })
     );
+
+    app.use(passport.initialize());
+    app.use(passport.session());
+    app.use((req, res, next) => {
+        res.locals.user = req.user;
+        next();
+    });
 
     // TODO get rid of this
     const doc = ShareDBConnection.get("documents", "test");
@@ -75,7 +93,7 @@ async function main() {
     app.use("/", userRouter);
     app.use("/", documentRouter);
 
-    // Start HTTP Server
+    // Start Server
     server.listen(PORT);
     console.log(
         `🚀 Wario (Express Backend Server) now listening on port ${PORT}`
