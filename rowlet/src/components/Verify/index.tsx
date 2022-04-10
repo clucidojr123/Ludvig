@@ -4,13 +4,14 @@ import { useNavigate } from "react-router-dom";
 const WARIO_URI = process.env.REACT_APP_WARIO_URI || "";
 
 const defaultValues = {
-    username: "",
-    password: "",
+    email: "",
+    key: "",
 };
 
-const Login: React.FC = () => {
+const Verify: React.FC = () => {
     const [formValues, setFormValues] = useState(defaultValues);
     const [error, setError] = useState("");
+    const [message, setMessage] = useState("");
     const navigate = useNavigate();
 
     const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -23,7 +24,7 @@ const Login: React.FC = () => {
 
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
-        const data = await fetch(`${WARIO_URI}/login`, {
+        const data = await fetch(`${WARIO_URI}/verify`, {
             method: "POST",
             credentials: "include",
             headers: {
@@ -32,7 +33,7 @@ const Login: React.FC = () => {
             body: JSON.stringify(formValues),
         });
         if (data.status === 200) {
-            navigate("/");
+            setMessage("Succesfully Verified!");
         } else {
             setError("Error When Submitting Form");
         }
@@ -41,34 +42,35 @@ const Login: React.FC = () => {
     return (
         <>
             <form id="login-form" onSubmit={handleSubmit}>
-                <label htmlFor="username">Username:</label>
+                <label htmlFor="email">Email:</label>
                 <input
-                    type="text"
-                    name="username"
-                    value={formValues.username}
+                    type="email"
+                    name="email"
+                    value={formValues.email}
                     required
                     onChange={handleInputChange}
                 />
                 <br />
-                <label htmlFor="password">Password:</label>
+                <label htmlFor="password">Secret Key:</label>
                 <input
                     type="password"
-                    name="password"
-                    value={formValues.password}
+                    name="key"
+                    value={formValues.key}
                     required
                     onChange={handleInputChange}
                 />
                 <button
                     type="submit"
-                    disabled={!formValues.username && !formValues.password}
+                    disabled={!formValues.email && !formValues.key && !!message}
                 >
                     Submit
                 </button>
             </form>
             {error && <div style={{ color: "red" }}>{error}</div>}
+            {message && <div style={{ color: "green" }}>{message}</div>}
             <button onClick={() => navigate("/")}>Go Home</button>
         </>
     );
 };
 
-export default Login;
+export default Verify;

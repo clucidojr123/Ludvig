@@ -5,6 +5,12 @@ import User, { IUser } from "../models/user";
 
 const router = express.Router();
 
+// GET SESSION USER
+router.get("/get-session", isAuthenticated, (req, res) => {
+    const user = req.user as IUser;
+    res.status(200).json(user).end();
+});
+
 // LOGIN
 router.post("/login", (req, res, next) => {
    // Pass request information to passport
@@ -22,6 +28,12 @@ router.post("/login", (req, res, next) => {
            return res.status(200).json({ message: `Logged in ${user.id}` }).end();
        });
    })(req, res, next);
+});
+
+// LOGOUT
+router.post("/logout", (req, res) => {
+    req.logout();
+    res.json({ message: "Logged Out!" }).end();
 });
 
 // REGISTER
@@ -46,7 +58,7 @@ router.post("/register", async (req, res, next) => {
 
    await user.save();
 
-   return res.status(200).send("Success").end();
+   res.status(200).send("Success").end();
 });
 
 // VERIFY USER
@@ -56,10 +68,10 @@ router.post('/verify', async (req, res, next) => {
             await User.findOneAndUpdate({ email: req.body.email }, { verified: true });
             res.json({ status: "OK" }).end();
         } else {
-            res.json({ status: "ERROR" }).end();
+            res.status(400).json({ status: "ERROR" }).end();
         }
     } catch (err) {
-        res.json({ status: "ERROR" }).end();
+        res.status(400).json({ status: "ERROR" }).end();
         console.error(err);
     }
 });

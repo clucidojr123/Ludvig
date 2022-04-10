@@ -33,12 +33,8 @@ const Register: React.FC = () => {
             body: JSON.stringify(formValues),
         });
         if (data.status === 200) {
-            // const res = await data.json();
-            // const result = res.body;
-            // console.log(result);
             navigate("/");
         } else {
-            console.log()
             setError("Error When Submitting Form");
         }
     };
@@ -80,6 +76,7 @@ const Register: React.FC = () => {
                 </button>
             </form>
             {error && <div style={{ color: "red" }}>{error}</div>}
+            <button onClick={() => navigate("/")}>Go Home</button>
         </>
     );
 };
