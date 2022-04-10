@@ -4,6 +4,7 @@ import express from "express";
 import Delta from "quill-delta";
 import session from "express-session";
 import MongoStore from "connect-mongo";
+import mongoose from "mongoose";
 import { ShareDBConnection } from "./util/sharedb";
 import userRouter from "./routes/user";
 import documentRouter from "./routes/document";
@@ -17,6 +18,8 @@ async function main() {
     const app = express();
     const server = http.createServer(app);
 
+    await mongoose.connect(MONGO_URI);
+
     // Enable CORS and expose needed headers
     app.use(
         cors({
@@ -26,6 +29,7 @@ async function main() {
                 "Connection",
                 "X-CSE356",
             ],
+            origin: true,
             credentials: true,
         })
     );
@@ -60,10 +64,6 @@ async function main() {
 
     app.use(passport.initialize());
     app.use(passport.session());
-    app.use((req, res, next) => {
-        res.locals.user = req.user;
-        next();
-    });
 
     // TODO get rid of this
     const doc = ShareDBConnection.get("documents", "test");
