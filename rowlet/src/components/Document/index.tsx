@@ -16,6 +16,7 @@ const Document = () => {
         console.log(`Sending Ops: \n${JSON.stringify(ops)}`);
         await fetch(`${WARIO_URI}/op/${connectID}`, {
             method: "POST",
+            credentials: "include",
             headers: {
                 "Content-Type": "application/json",
             },
@@ -62,7 +63,8 @@ const Document = () => {
         if (quill) {
             console.log("Connection ID: " + connectID);
             const evInstance = new EventSource(
-                `${WARIO_URI}/connect/${connectID}`
+                `${WARIO_URI}/connect/${connectID}`,
+                { withCredentials: true }
             );
             evInstance.onmessage = handleIncomingData;
             window.addEventListener("beforeunload", () => {
