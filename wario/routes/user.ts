@@ -2,6 +2,8 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import passport, { isAuthenticated } from "../util/passport";
 import User, { IUser } from "../models/user";
+import { sendVerifyEmail } from "../util/email";
+import { verifyToken } from "../util/token";
 
 const router = express.Router();
 
@@ -13,65 +15,89 @@ router.get("/get-session", isAuthenticated, (req, res) => {
 
 // LOGIN
 router.post("/login", (req, res, next) => {
-   // Pass request information to passport
-   passport.authenticate("local", function (err, user, info) {
-       if (err) {
-           return res.status(401).json({ error: err }).end();
-       }
-       if (!user) {
-           return res.status(401).json({ error: info.message }).end();
-       }
-       req.login(user, function (err) {
-           if (err) {
-               return res.status(401).json({ error: err }).end();
-           }
-           return res.status(200).json({ message: `Logged in ${user.id}` }).end();
-       });
-   })(req, res, next);
+    // Pass request information to passport
+    passport.authenticate("local", function (err, user, info) {
+        if (err) {
+            return res.status(401).json({ error: err }).end();
+        }
+        if (!user) {
+            return res.status(401).json({ error: info.message }).end();
+        }
+        req.login(user, function (err) {
+            if (err) {
+                return res.status(401).json({ error: err }).end();
+            }
+            return res
+                .status(200)
+                .json({ message: `Logged in ${user.id}` })
+                .end();
+        });
+    })(req, res, next);
 });
 
 // LOGOUT
 router.post("/logout", (req, res) => {
     req.logout();
-    res.json({ message: "Logged Out!" }).end();
+    res.status(200).end();
 });
 
-// REGISTER
-router.post("/register", async (req, res, next) => {
-   let { email, username, password } = req.body;
-   if (!email || !username || !password) {
-       res.status(400).json({ error: "Missing arguments in request" }).end();
-       return;
-   }
+// SIGN UP
+router.post("/signup", async (req, res, next) => {
+    let { email, name, password } = req.body;
+    if (!email || !name || !password) {
+        res.status(400)
+            .json({ error: true, message: "Missing arguments in request" })
+            .end();
+        return;
+    }
 
-   email = (email as string).toLowerCase();
-   const usernameLower = (username as string).toLowerCase();
+    email = (email as string).toLowerCase();
+    const nameLower = (name as string).toLowerCase();
 
-   const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-   const user = new User({
-       email,
-       username,
-       usernameLower,
-       password: hashedPassword,
-   });
+    const user = new User({
+        email,
+        name,
+        nameLower,
+        password: hashedPassword,
+    });
 
-   await user.save();
+    await user.save();
+    await sendVerifyEmail(user);
 
-   res.status(200).send("Success").end();
+    res.status(200).end();
 });
 
 // VERIFY USER
-router.post('/verify', async (req, res, next) => {
+router.get("/verify", async (req, res, next) => {
     try {
-        if (req.body.key === "abracadabra") {
-            await User.findOneAndUpdate({ email: req.body.email }, { verified: true });
-            res.json({ status: "OK" }).end();
-        } else {
-            res.status(400).json({ status: "ERROR" }).end();
+        if (!req.query.id || !req.query.key) {
+            res.status(400)
+                .json({ error: true, message: "Missing query params" })
+                .end();
         }
+
+        const user = await User.findById(req.query.id);
+        if (!user) {
+            res.status(400).json({ error: true, message: "User not found" }).end();
+            return next();
+        }
+
+        const payload = verifyToken(user, req.query.token as string);
+
+        if (!payload) {
+            res.status(400).json({ error: true, message: "Key is invalid or expired" }).end();
+            return next();
+        }
+
+        user.verified = true;
+        await user.save();
+
+        res.status(200).end();
+        return next();
     } catch (err) {
-        res.status(400).json({ status: "ERROR" }).end();
+        res.status(400).json({ error: true, message: "Something bad happened" }).end();
         console.error(err);
     }
 });

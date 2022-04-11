@@ -90,7 +90,7 @@ async function main() {
     });
 
     // Add routes
-    app.use("/", userRouter);
+    app.use("/users", userRouter);
     app.use("/", documentRouter);
 
     // Start Server
