@@ -4,10 +4,9 @@ import { generateToken } from "./token";
 
 const transporter = nodemailer.createTransport({
     service: "gmail",
-    // Too lazy to setup environment variables
     auth: {
-        user: "zestysidewalk123test@gmail.com",
-        pass: "SpicyChicken123!",
+        user: process.env.EMAIL_ADDRESS,
+        pass: process.env.EMAIL_PASSWORD,
     },
 });
 
@@ -21,7 +20,7 @@ const generateVerifyEmailHTML = (id: string, token: string) => {
                 <table cellspacing="0" cellpadding="0">
                     <tr>
                         <td style="border-radius: 2px;" bgcolor="blue">
-                            <a href="${process.env.ORIGIN}/verify/?id=${id}&key=${token}" target="_blank" 
+                            <a href="${process.env.ORIGIN}/users/verify/?id=${id}&key=${token}" target="_blank" 
                                 style="
                                     padding: 8px 12px; 
                                     border: 1px solid black;

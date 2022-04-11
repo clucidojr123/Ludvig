@@ -18,11 +18,11 @@ passport.deserializeUser((id, done) => {
 // Local Strategy
 passport.use(
     new LocalStrategy(
-        { usernameField: "username" },
-        async (username, password, done) => {
+        { usernameField: "email" },
+        async (email, password, done) => {
             // Find user with given username
             const user = await User.findOne({
-                usernameLower: username.toLowerCase(),
+                email: email.toLowerCase(),
             });
 
             if (!user) {
@@ -48,14 +48,15 @@ export const isAuthenticated = (
     next: NextFunction
 ) => {
     if (req.isAuthenticated()) return next();
-    res.status(401).json({ error: "not logged in" });
+    res.status(401).json({ error: true, message: "not logged in" });
 };
 
 export const isVerified = (req: Request, res: Response, next: NextFunction) => {
     const user = req.user as IUser;
     if (!user.verified)
         res.status(401).json({
-            error: "must be verified to perform requested action",
+            error: true,
+            message: "must be verified to perform requested action",
         });
     else return next();
 };

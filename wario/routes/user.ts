@@ -18,19 +18,16 @@ router.post("/login", (req, res, next) => {
     // Pass request information to passport
     passport.authenticate("local", function (err, user, info) {
         if (err) {
-            return res.status(401).json({ error: err }).end();
+            return res.status(401).json({ error: true, message: JSON.stringify(err) }).end();
         }
         if (!user) {
-            return res.status(401).json({ error: info.message }).end();
+            return res.status(401).json({ error: true, message: info.message }).end();
         }
         req.login(user, function (err) {
             if (err) {
-                return res.status(401).json({ error: err }).end();
+                return res.status(401).json({ error: true, message: JSON.stringify(err) }).end();
             }
-            return res
-                .status(200)
-                .json({ message: `Logged in ${user.id}` })
-                .end();
+            return res.status(200).json({ name: user.name }).end();
         });
     })(req, res, next);
 });
@@ -50,23 +47,29 @@ router.post("/signup", async (req, res, next) => {
             .end();
         return;
     }
+    try {
+        email = (email as string).toLowerCase();
+        const nameLower = (name as string).toLowerCase();
 
-    email = (email as string).toLowerCase();
-    const nameLower = (name as string).toLowerCase();
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+        const user = new User({
+            email,
+            name,
+            nameLower,
+            password: hashedPassword,
+        });
 
-    const user = new User({
-        email,
-        name,
-        nameLower,
-        password: hashedPassword,
-    });
+        await user.save();
+        await sendVerifyEmail(user);
 
-    await user.save();
-    await sendVerifyEmail(user);
-
-    res.status(200).end();
+        res.status(200).end();
+    } catch (err) {
+        res.status(400)
+            .json({ error: true, message: "Something bad happened" })
+            .end();
+        console.error(err);
+    }
 });
 
 // VERIFY USER
@@ -80,14 +83,18 @@ router.get("/verify", async (req, res, next) => {
 
         const user = await User.findById(req.query.id);
         if (!user) {
-            res.status(400).json({ error: true, message: "User not found" }).end();
+            res.status(400)
+                .json({ error: true, message: "User not found" })
+                .end();
             return next();
         }
 
-        const payload = verifyToken(user, req.query.token as string);
+        const payload = verifyToken(user, req.query.key as string);
 
         if (!payload) {
-            res.status(400).json({ error: true, message: "Key is invalid or expired" }).end();
+            res.status(400)
+                .json({ error: true, message: "Key is invalid or expired" })
+                .end();
             return next();
         }
 
@@ -97,7 +104,9 @@ router.get("/verify", async (req, res, next) => {
         res.status(200).end();
         return next();
     } catch (err) {
-        res.status(400).json({ error: true, message: "Something bad happened" }).end();
+        res.status(400)
+            .json({ error: true, message: "Something bad happened" })
+            .end();
         console.error(err);
     }
 });
