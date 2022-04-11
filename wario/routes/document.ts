@@ -9,14 +9,15 @@ import { isAuthenticated, isVerified } from "../util/passport";
 const router = express.Router();
 
 router.get("/alldocs", isAuthenticated, isVerified, async (req, res) => {
-    const allDocs = ShareDBConnection.createFetchQuery("documents", {});
-    allDocs.on("ready", () => {
-        allDocs.destroy();
-        res.json({ docs: allDocs.results }).end();
-    });
-    allDocs.on("error", () => {
-        allDocs.destroy();
-        res.status(400).end();
+    ShareDBConnection.createFetchQuery("documents", {}, {}, (err, results) => {
+        if (err) {
+            res.status(400).end();
+        } else {
+            const docList = results.map((val) => { return {
+                id: val.id
+            }});
+            res.json({ docs: docList }).end();
+        }
     });
 });
 
@@ -37,7 +38,7 @@ router.get("/connect/:id", isAuthenticated, isVerified, async (req, res) => {
     } else {
         connect.stream = res;
     }
-    const doc = ShareDBConnection.get("documents", "test");;
+    const doc = ShareDBConnection.get("documents", "test");
     doc.fetch((err) => {
         res.write(`data: ${JSON.stringify({ content: doc.data.ops })}\n\n`);
         res.on("close", () => {
