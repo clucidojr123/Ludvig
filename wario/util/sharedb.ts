@@ -1,5 +1,4 @@
 import ShareDB from "sharedb/lib/client";
-import express from "express";
 import WebSocket from "ws";
 // @ts-ignore
 import richText from "rich-text";
@@ -9,13 +8,6 @@ import { QuillDeltaToHtmlConverter } from "quill-delta-to-html";
 const LUIGI_URI = process.env.LUIGI_URI || "ws://luigi:5001";
 
 export const wsInstance = new WebSocket(LUIGI_URI);
-
-interface Connection {
-    name: string;
-    stream: express.Response;
-}
-
-export let currentConnections: Connection[] = [];
 
 // @ts-ignore
 export const ShareDBConnection = new ShareDB.Connection(wsInstance);

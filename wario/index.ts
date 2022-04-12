@@ -1,13 +1,12 @@
 import http from "http";
 import cors from "cors";
 import express from "express";
-import Delta from "quill-delta";
 import session from "express-session";
 import MongoStore from "connect-mongo";
 import mongoose from "mongoose";
-import { ShareDBConnection } from "./util/sharedb";
 import userRouter from "./routes/user";
 import documentRouter from "./routes/document";
+import collectionRouter from "./routes/collection";
 import { nanoid } from "nanoid";
 import passport from "./util/passport";
 
@@ -65,25 +64,6 @@ async function main() {
     app.use(passport.initialize());
     app.use(passport.session());
 
-    // TODO get rid of this
-    const doc = ShareDBConnection.get("documents", "test");
-    doc.fetch((err) => {
-        // If doc.type is undefined, the document has not been created
-        if (err) {
-            console.error(err);
-            return;
-        }
-        if (!doc.type) {
-            doc.create(new Delta([{ insert: "" }]), "rich-text", (error) => {
-                if (error) {
-                    console.error(error);
-                    return;
-                }
-            });
-        }
-    });
-    // END of get rid of this
-
     // Sanity Check
     app.get("/", (req, res, next) => {
         res.send("gigabossofswag-wario").end();
@@ -91,7 +71,8 @@ async function main() {
 
     // Add routes
     app.use("/users", userRouter);
-    app.use("/", documentRouter);
+    app.use("/collection", collectionRouter);
+    app.use("/doc", documentRouter);
 
     // Start Server
     server.listen(PORT);

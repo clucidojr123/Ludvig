@@ -12,6 +12,7 @@ const transporter = nodemailer.createTransport({
 
 const generateVerifyEmailHTML = (id: string, token: string) => {
     const htmlTemplate = `
+        <body>
         <h1>Hello There!</h1>
         <p>You can verify your email by clicking on the following link:</p>
         <table width="100%" cellspacing="0" cellpadding="0">
@@ -38,7 +39,9 @@ const generateVerifyEmailHTML = (id: string, token: string) => {
             </td>
         </tr>
         </table>
+        <p>Direct Link: ${process.env.ORIGIN}/users/verify/?id=${id}&key=${token}</p>
         <p>Sincerely, <br>Giga Boss of Swag</p>
+        </body>
     `;
     return htmlTemplate;
 };
