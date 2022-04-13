@@ -54,7 +54,7 @@ const Register: React.FC = () => {
                 <label htmlFor="username">Username:</label>
                 <input
                     type="text"
-                    name="username"
+                    name="name"
                     value={formValues.name}
                     required
                     onChange={handleInputChange}
