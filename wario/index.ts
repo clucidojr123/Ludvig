@@ -87,7 +87,7 @@ async function main() {
 
     // Sanity Check
     app.get("/", (req, res, next) => {
-        res.send("gigabossofswag-wario").end();
+        res.send("gigabossofswag-test").end();
     });
 
     // Add routes
