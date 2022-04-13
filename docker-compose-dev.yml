@@ -6,6 +6,11 @@ services:
         restart: always
         ports:
             - 27017
+    mail:
+        image: bytemark/smtp
+        restart: always
+        ports: 
+            - 25:25
     s3:
         image: minio/minio
         ports:
@@ -43,8 +48,6 @@ services:
             - PORT=3001
             - LUIGI_URI=ws://luigi:5001
             - ORIGIN=http://localhost:3001
-            - EMAIL_ADDRESS=zestysidewalk123test@gmail.com
-            - EMAIL_PASSWORD=SpicyChicken123!
         command: npm run dev
     rowlet:
         build: 

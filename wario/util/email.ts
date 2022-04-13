@@ -3,11 +3,11 @@ import { IUser } from "../models/user";
 import { generateToken } from "./token";
 
 const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-        user: process.env.EMAIL_ADDRESS,
-        pass: process.env.EMAIL_PASSWORD,
-    },
+    host: "mail",
+    port: 25,
+    tls:{
+        rejectUnauthorized: false
+    }
 });
 
 const generateVerifyEmailHTML = (id: string, token: string) => {
@@ -62,7 +62,7 @@ export const sendVerifyEmail = async (user: IUser) => {
     const token = generateToken(user);
 
     const mailOptions = {
-        from: process.env.EMAIL_ADDRESS,
+        from: "Test",
         to: user.email,
         subject: "Verify Your GigaBossOfSwag Account Email",
         text: generateVerifyEmailText(user._id, token),
@@ -83,7 +83,7 @@ export const sendVerifyEmail = async (user: IUser) => {
 
 export const sendTestEmail = async (email: string) => {
     const mailOptions = {
-        from: "Test <cesare-fp2>",
+        from: "Test",
         to: email,
         subject: "Test Email",
         text: "testing",
