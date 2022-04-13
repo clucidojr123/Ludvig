@@ -10,9 +10,11 @@ const router = express.Router();
 router.get("/list", isAuthenticated, isVerified, async (req, res) => {
     const { db } = mongoose.connection;
     const docCollection = db.collection("documents");
-    const shareDocs = await docCollection.find({}).sort({ "_m.mtime": -1 }).limit(10).project({ _id: 1 }).toArray();
-    const idArray = shareDocs.map(val => val._id);
-    const docList = await DocumentName.find({ id: { $in: idArray }}).select("name id -_id");
+    const shareDocs = await docCollection.find({}).sort({ "_m.mtime": -1 }).limit(10).toArray();
+    const docList = await Promise.all(shareDocs.map(async (val) => {
+        const res = await DocumentName.findOne({ id: val._id });
+        return { name: res?.name || "NULL", id: val._id }
+    }));
 
     if (docList) {
         res.json(docList).end();

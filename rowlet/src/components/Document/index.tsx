@@ -6,6 +6,7 @@ import Delta, { Op } from "quill-delta";
 import { nanoid } from "nanoid";
 import { useParams } from "react-router-dom";
 const WARIO_URI = process.env.REACT_APP_WARIO_URI || "";
+const S3_ACCESS_URI = process.env.REACT_APP_S3_ACCESS_URI || "s3";
 
 const Document = () => {
     const { docID } = useParams();
@@ -13,11 +14,10 @@ const Document = () => {
     const [quill, setQuill] = useState<Quill>();
     const [cursors, setCursors] = useState<QuillCursors>();
     const quillRef = useRef(null);
-
-    let version = 0;
+    const vRef = useRef({ version: 0 });
 
     const sendOps = async (ops: any[]) => {
-        const payload = JSON.stringify({ op: ops, version });
+        const payload = JSON.stringify({ op: ops, version: vRef.current.version });
         console.log(`Sending Ops: ${payload}`);
         await fetch(`${WARIO_URI}/doc/op/${docID}/${connectID}`, {
             method: "POST",
@@ -53,17 +53,17 @@ const Document = () => {
             );
         } else if (data.content) {
             console.log("Recieved Initial Data");
-            version = data.version;
+            vRef.current.version = data.version;
             quill.setContents(data.content);
         } else if (Array.isArray(data)) {
             const newOps = data as Op[];
             console.log(`Recieved New Ops: \n${JSON.stringify(newOps)}`);
             // @ts-ignore
             quill.updateContents(new Delta(newOps));
-            version++;
+            vRef.current.version++;
         } else if (data.ack) {
             console.log("Recieved ACK");
-            version++;
+            vRef.current.version++;
         } else if (data.presence) {
             console.log("Recieved PRESENCE");
             if (data.presence.cursor) {
@@ -101,6 +101,51 @@ const Document = () => {
         }
     };
 
+    const selectLocalImage = () => {
+        const input = document.createElement("input");
+        input.setAttribute("type", "file");
+        input.setAttribute('accept', 'image/*');
+        input.click();
+
+        // Listen upload local image and save to server
+        input.onchange = (e) => {
+            const fileList = input.files;
+            if (fileList) {
+                const file = fileList[0];
+                saveToServer(file);
+            } else {
+                console.warn("Something bad happened when trying to upload a file");
+            }
+        };
+    }
+
+    const saveToServer = async (file: File) => {
+        const fd = new FormData();
+        fd.append("file", file);
+
+        const res = await fetch(`${WARIO_URI}/media/upload`, {
+            method: "POST",
+            credentials: "include",
+            body: fd,
+        });
+
+        const data = await res.json();
+        if (!data || data.error) {
+            console.log("Error uploading image to server");
+        } else {
+            insertToEditor(data.mediaid);
+        }
+    }
+
+    function insertToEditor(mediaid: string) {
+        // push image url to rich editor.
+        if (quill) {
+            const range = quill.getSelection();
+            const delta = quill.insertEmbed(range?.index || 0, "image", `${S3_ACCESS_URI}/${mediaid}`);
+            sendOps(delta.ops);
+        }
+    }
+
     useEffect(() => {
         Quill.register("modules/cursors", QuillCursors);
         setQuill(
@@ -114,6 +159,9 @@ const Document = () => {
     useEffect(() => {
         if (quill) {
             setCursors(quill.getModule("cursors"));
+            quill.getModule("toolbar").addHandler("image", () => {
+                selectLocalImage();
+            });
         }
     }, [quill]);
 
@@ -140,6 +188,7 @@ const Document = () => {
             <div id="toolbar">
                 <button className="ql-bold">Bold</button>
                 <button className="ql-italic">Italic</button>
+                <button className="ql-image">Image</button>
             </div>
             <div id="editor" ref={quillRef}></div>
             <script src="https://cdn.quilljs.com/1.0.0/quill.js"></script>
