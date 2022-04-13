@@ -2,6 +2,7 @@ import express from "express";
 import { generateHTML, ShareDBConnection } from "../util/sharedb";
 import { connectionStore } from "../util/connection";
 import { isAuthenticated, isVerified } from "../util/passport";
+import { IUser } from "../models/user";
 
 const router = express.Router();
 
@@ -66,7 +67,7 @@ router.get(
             );
             res.on("close", () => {
                 console.log(`Closing Connection: ${req.params.uid}\n`);
-                connectionStore.endUIDConnection(req.params.uid);
+                connectionStore.endUIDConnection(uid, docid);
             });
             console.log(`Connected To Doc: ${req.params.uid}\n`);
         });
@@ -167,6 +168,90 @@ router.post(
                         })
                         .end();
                     return;
+                }
+            });
+        }
+    }
+);
+
+router.post(
+    "/presence/:docid/:uid",
+    isAuthenticated,
+    isVerified,
+    async (req, res) => {
+        // VALIDATE ROUTE PARAMS
+        const { docid, uid } = req.params;
+        if (!docid || !uid) {
+            res.status(400)
+                .json({
+                    error: true,
+                    message: "Invalid route parameters",
+                })
+                .end();
+            return;
+        }
+        // GET CONNECTION WITH SPECIFIED UID
+        let connect = connectionStore.data.find(
+            (val) => val.uid === req.params.uid
+        );
+        if (!connect) {
+            res.status(400)
+                .json({
+                    error: true,
+                    message: "No connection with UID found",
+                })
+                .end();
+            return;
+        } else {
+            // SANITY CHECK FOR INDEX AND LENGTH
+            const { index, length } = req.body;
+            if (index === undefined || length === undefined) {
+                res.status(400)
+                    .json({
+                        error: true,
+                        message: "Invalid request body",
+                    })
+                    .end();
+                return;
+            }
+            const docPresence = ShareDBConnection.getDocPresence(
+                "documents",
+                docid
+            );
+            const localPresence = docPresence.create(uid);
+            localPresence.submit({ index, length }, (err) => {
+                if (err) {
+                    res.status(400)
+                        .json({
+                            error: true,
+                            message: "Error trying to submit presence",
+                        })
+                        .end();
+                    return;
+                } else {
+                    const user = req.user as IUser;
+                    connectionStore.data.forEach((val) => {
+                        // SEND PRESENCE TO OTHER CONNECTIONS
+                        if (
+                            !val.stream.writableEnded &&
+                            val.uid !== uid &&
+                            val.docid === docid
+                        ) {
+                            console.log(`Sending PRESENCE to ${val.uid}\n`);
+                            val.stream.write(
+                                `data: ${JSON.stringify({
+                                    presence: {
+                                        id: uid,
+                                        cursor: {
+                                            index,
+                                            length,
+                                            name: user.name,
+                                        },
+                                    },
+                                })}\n\n`
+                            );
+                        }
+                    });
                 }
             });
         }

@@ -34,13 +34,23 @@ class CurrentConnections {
         });
     }
 
-    endUIDConnection(uid: string) {
+    endUIDConnection(uid: string, docid: string) {
         this.data = this.data.filter((val) => {
             if (val.uid === uid) {
                 if (!val.stream.writableEnded) {
                     val.stream.end();
                 }
                 return false;
+            } else if (docid === val.docid && !val.stream.writableEnded) {
+                console.log(`Sending PRESENCE to ${val.uid}\n`);
+                val.stream.write(
+                    `data: ${JSON.stringify({
+                        presence: {
+                            id: uid,
+                            cursor: null,
+                        },
+                    })}\n\n`
+                );
             }
             return true;
         });

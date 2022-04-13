@@ -2,6 +2,7 @@ import express from "express";
 import { ShareDBConnection } from "../util/sharedb";
 import mongoose from "mongoose";
 import { isAuthenticated, isVerified } from "../util/passport";
+import { DocumentName } from "../models/documentName";
 import { nanoid } from "nanoid";
 
 const router = express.Router();
@@ -9,14 +10,11 @@ const router = express.Router();
 router.get("/list", isAuthenticated, isVerified, async (req, res) => {
     const { db } = mongoose.connection;
     const docCollection = db.collection("documents");
-    const result = await docCollection.find({}).sort({ "_m.mtime": -1 }).toArray();
-    if (result) {
-        const docList = result.map((val) => {
-            return {
-                id: val._id,
-                name: val.name,
-            };
-        });
+    const shareDocs = await docCollection.find({}).sort({ "_m.mtime": -1 }).limit(10).project({ _id: 1 }).toArray();
+    const idArray = shareDocs.map(val => val._id);
+    const docList = await DocumentName.find({ id: { $in: idArray }}).select("name id -_id");
+
+    if (docList) {
         res.json(docList).end();
     } else {
         res.status(400)
@@ -39,9 +37,7 @@ router.post("/create", isAuthenticated, isVerified, async (req, res) => {
             .end();
         return;
     }
-    const { db } = mongoose.connection;
     const docid = nanoid()
-    const docCollection = db.collection("documents");
     const doc = ShareDBConnection.get("documents", docid);
     doc.fetch((err) => {
         if (err) {
@@ -67,7 +63,7 @@ router.post("/create", isAuthenticated, isVerified, async (req, res) => {
                         console.error(error);
                         return;
                     }
-                    await docCollection.findOneAndUpdate({ _id: docid }, { $set: { name: name } });
+                    await DocumentName.create({ name, id: docid });
                     res.status(200).json({ docid: doc.id }).end();
                     return;
                 }
@@ -115,6 +111,7 @@ router.post("/delete", isAuthenticated, isVerified, async (req, res) => {
                 console.error(error);
                 return;
             } else {
+                await DocumentName.deleteOne({ id: docid });
                 await docCollection.deleteOne({ _id: docid });
                 await o_docCollection.deleteOne({ d: docid });
                 res.status(200).end();

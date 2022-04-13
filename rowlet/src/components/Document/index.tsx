@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import "quill/dist/quill.snow.css";
-import Quill from "quill";
+import Quill, { RangeStatic } from "quill";
+import QuillCursors from "quill-cursors";
 import Delta, { Op } from "quill-delta";
 import { nanoid } from "nanoid";
 import { useParams } from "react-router-dom";
@@ -10,14 +11,31 @@ const Document = () => {
     const { docID } = useParams();
     const [connectID] = useState<string>(nanoid());
     const [quill, setQuill] = useState<Quill>();
+    const [cursors, setCursors] = useState<QuillCursors>();
     const quillRef = useRef(null);
 
     let version = 0;
 
-    const sendData = async (ops: any[]) => {
+    const sendOps = async (ops: any[]) => {
         const payload = JSON.stringify({ op: ops, version });
-        console.log(`Sending Data: ${payload}`);
+        console.log(`Sending Ops: ${payload}`);
         await fetch(`${WARIO_URI}/doc/op/${docID}/${connectID}`, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: payload,
+        });
+    };
+
+    const sendPresence = async (presence: RangeStatic) => {
+        const payload = JSON.stringify({
+            index: presence.index,
+            length: presence.length,
+        });
+        console.log(`Sending Presence: ${payload}`);
+        await fetch(`${WARIO_URI}/doc/presence/${docID}/${connectID}`, {
             method: "POST",
             credentials: "include",
             headers: {
@@ -29,9 +47,9 @@ const Document = () => {
 
     const handleIncomingData = (e: MessageEvent<any>) => {
         const data = JSON.parse(e.data);
-        if (!data || !quill) {
+        if (!data || !quill || !cursors) {
             console.log(
-                "Recieved message with undefined data or quill is undefined!"
+                "Recieved message with undefined data or quill or cursors is undefined!"
             );
         } else if (data.content) {
             console.log("Recieved Initial Data");
@@ -46,20 +64,48 @@ const Document = () => {
         } else if (data.ack) {
             console.log("Recieved ACK");
             version++;
+        } else if (data.presence) {
+            console.log("Recieved PRESENCE");
+            if (data.presence.cursor) {
+                const newColor = Math.floor(Math.random() * 16777215).toString(
+                    16
+                );
+                cursors.createCursor(
+                    data.presence.id,
+                    data.presence.cursor.name,
+                    `#${newColor}`
+                );
+                cursors.moveCursor(data.presence.id, {
+                    index: data.presence.cursor.index,
+                    length: data.presence.cursor.length,
+                });
+            } else {
+                cursors.removeCursor(data.presence.id);
+            }
         }
     };
 
     const onTextChange = (delta: Delta, oldDelta: Delta, source: string) => {
         if (source === "user") {
-            // queue.push(delta.ops);
-            sendData(delta.ops);
+            sendOps(delta.ops);
+        }
+    };
+
+    const onSelectChange = (
+        range: RangeStatic,
+        oldRange: RangeStatic,
+        source: string
+    ) => {
+        if (range && source === "user") {
+            sendPresence(range);
         }
     };
 
     useEffect(() => {
+        Quill.register("modules/cursors", QuillCursors);
         setQuill(
             new Quill("#editor", {
-                modules: { toolbar: "#toolbar" },
+                modules: { toolbar: "#toolbar", cursors: true },
                 theme: "snow",
             })
         );
@@ -67,6 +113,12 @@ const Document = () => {
 
     useEffect(() => {
         if (quill) {
+            setCursors(quill.getModule("cursors"));
+        }
+    }, [quill]);
+
+    useEffect(() => {
+        if (quill && cursors) {
             console.log("Connection ID: " + connectID);
             const evInstance = new EventSource(
                 `${WARIO_URI}/doc/connect/${docID}/${connectID}`,
@@ -78,8 +130,9 @@ const Document = () => {
             });
             // @ts-ignore
             quill.on("text-change", onTextChange);
+            quill.on("selection-change", onSelectChange);
         }
-    }, [quill]);
+    }, [cursors]);
 
     return (
         <div>
