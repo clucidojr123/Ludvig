@@ -25,7 +25,7 @@ async function main() {
     const db = new ShareDBMongo("mongodb://mongo:27017/ludvig")
 
     // Initialize ShareDB
-    const share = new ShareDB({ db: db });
+    const share = new ShareDB({ db: db, presence: true });
 
     // Connect incoming WebSocket connections to ShareDB
     const wss = new WebSocket.Server({ server: server });

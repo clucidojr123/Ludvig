@@ -1,21 +1,21 @@
 import { Routes, Route } from "react-router-dom";
-import Home from "./components/Home";
+import Landing from "./components/Landing";
 import Document from "./components/Document";
 import Register from "./components/Register";
 import Login from "./components/Login";
-import Verify from "./components/Verify";
-import AllDocuments from "./components/AllDocuments";
+import Home from "./components/Home";
+// import Verify from "./components/Verify";
 
 function App() {
   return (
     <div className="App">
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/doc" element={<Document />} />
+        <Route path="/" element={<Landing />} />
+        <Route path="/home" element={<Home />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/verify" element={<Verify />} />
-        <Route path="/all-docs" element={<AllDocuments />} />
+        <Route path="/signup" element={<Register />} />
+        {/* <Route path="/verify" element={<Verify />} /> */}
+        <Route path="/doc/edit/:docID" element={<Document />} />
       </Routes>
     </div>
   );

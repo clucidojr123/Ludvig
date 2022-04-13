@@ -19,12 +19,10 @@ const userSchema = new Schema<IUser>(
         },
         name: {
             type: String,
-            unique: true,
             required: true,
         },
         nameLower: {
             type: String,
-            unique: true,
             required: true,
         },
         verified: {

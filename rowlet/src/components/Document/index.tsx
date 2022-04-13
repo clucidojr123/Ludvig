@@ -3,24 +3,27 @@ import "quill/dist/quill.snow.css";
 import Quill from "quill";
 import Delta, { Op } from "quill-delta";
 import { nanoid } from "nanoid";
-import { debounce } from "throttle-debounce";
-
+import { useParams } from "react-router-dom";
 const WARIO_URI = process.env.REACT_APP_WARIO_URI || "";
 
 const Document = () => {
+    const { docID } = useParams();
     const [connectID] = useState<string>(nanoid());
     const [quill, setQuill] = useState<Quill>();
     const quillRef = useRef(null);
 
+    let version = 0;
+
     const sendData = async (ops: any[]) => {
-        console.log(`Sending Ops: \n${JSON.stringify(ops)}`);
-        await fetch(`${WARIO_URI}/op/${connectID}`, {
+        const payload = JSON.stringify({ op: ops, version });
+        console.log(`Sending Data: ${payload}`);
+        await fetch(`${WARIO_URI}/doc/op/${docID}/${connectID}`, {
             method: "POST",
             credentials: "include",
             headers: {
                 "Content-Type": "application/json",
             },
-            body: `[${JSON.stringify(ops)}]`,
+            body: payload,
         });
     };
 
@@ -31,15 +34,18 @@ const Document = () => {
                 "Recieved message with undefined data or quill is undefined!"
             );
         } else if (data.content) {
-            console.log("Recieved Initial Ops");
+            console.log("Recieved Initial Data");
+            version = data.version;
             quill.setContents(data.content);
         } else if (Array.isArray(data)) {
-            const newDeltas = data as Array<Op[]>;
-            console.log(`Recieved New Ops: \n${JSON.stringify(newDeltas)}`);
-            newDeltas.forEach((val) => {
-                // @ts-ignore
-                quill.updateContents(val);
-            });
+            const newOps = data as Op[];
+            console.log(`Recieved New Ops: \n${JSON.stringify(newOps)}`);
+            // @ts-ignore
+            quill.updateContents(new Delta(newOps));
+            version++;
+        } else if (data.ack) {
+            console.log("Recieved ACK");
+            version++;
         }
     };
 
@@ -63,7 +69,7 @@ const Document = () => {
         if (quill) {
             console.log("Connection ID: " + connectID);
             const evInstance = new EventSource(
-                `${WARIO_URI}/connect/${connectID}`,
+                `${WARIO_URI}/doc/connect/${docID}/${connectID}`,
                 { withCredentials: true }
             );
             evInstance.onmessage = handleIncomingData;

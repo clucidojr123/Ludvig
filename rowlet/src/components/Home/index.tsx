@@ -1,56 +1,49 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const WARIO_URI = process.env.REACT_APP_WARIO_URI || "";
 
-function Home() {
-    const [user, setUser] = useState<Record<any, any> | string>(
-        "Not logged in!"
-    );
+const AllDocuments: React.FC = () => {
+    const [docs, setDocs] = useState<Record<any, any>[]>();
+    const navigate = useNavigate();
 
-    const fetchUser = async () => {
-        const data = await fetch(`${WARIO_URI}/get-session`, {
+    const fetchDocs = async () => {
+        const data = await fetch(`${WARIO_URI}/collection/list`, {
             method: "GET",
             credentials: "include",
         });
         if (data.status === 200) {
             const res = await data.json();
-            setUser(res);
+            setDocs(res);
         } else {
-            setUser("Not logged in!");
+            navigate("/login");
         }
     };
 
-    const handleLogout = async () => {
-        await fetch(`${WARIO_URI}/logout`, {
-            method: "POST",
-            credentials: "include",
-        });
-        await fetchUser();
-    }
-
     useEffect(() => {
-        fetchUser();
+        fetchDocs();
     }, []);
 
+    if (!docs) {
+        return (
+            <div>
+                <h1>Loading Docs...</h1>
+            </div>
+        );
+    }
+
     return (
-        <div style={{ width: "100%", wordWrap: "break-word", }}>
-            <header className="App-header">
-                <h1>GIGA BOSS OF SWAG GOOGLE DOCS CLONE</h1>
-                <br />
-                <h4>{JSON.stringify(user)}</h4>
-                <br />
-                <Link to="/login">Login</Link>
-                <br />
-                <Link to="/register">Register</Link>
-                <br />
-                <Link to="/verify">Verify</Link>
-                <br />
-                <button onClick={handleLogout}>Logout</button>
-                {/* <Link to="/docs">All Docs</Link> */}
-            </header>
+        <div>
+            <h1>Home Page</h1>
+            <ul>
+            {docs.map((val, index) => (
+                <li key={`document-${index}`}>
+                    <a href={`/doc/edit/${val.id}`}>{val.name}</a>
+                </li>
+            ))}
+            </ul>
         </div>
     );
-}
+};
 
-export default Home;
+export default AllDocuments;

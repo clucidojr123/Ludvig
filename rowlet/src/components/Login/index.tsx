@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 const WARIO_URI = process.env.REACT_APP_WARIO_URI || "";
 
 const defaultValues = {
-    username: "",
+    email: "",
     password: "",
 };
 
@@ -23,7 +23,7 @@ const Login: React.FC = () => {
 
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
-        const data = await fetch(`${WARIO_URI}/login`, {
+        const data = await fetch(`${WARIO_URI}/users/login`, {
             method: "POST",
             credentials: "include",
             headers: {
@@ -32,7 +32,7 @@ const Login: React.FC = () => {
             body: JSON.stringify(formValues),
         });
         if (data.status === 200) {
-            navigate("/");
+            navigate("/home");
         } else {
             setError("Error When Submitting Form");
         }
@@ -41,11 +41,11 @@ const Login: React.FC = () => {
     return (
         <>
             <form id="login-form" onSubmit={handleSubmit}>
-                <label htmlFor="username">Username:</label>
+                <label htmlFor="email">Email:</label>
                 <input
-                    type="text"
-                    name="username"
-                    value={formValues.username}
+                    type="email"
+                    name="email"
+                    value={formValues.email}
                     required
                     onChange={handleInputChange}
                 />
@@ -60,7 +60,7 @@ const Login: React.FC = () => {
                 />
                 <button
                     type="submit"
-                    disabled={!formValues.username && !formValues.password}
+                    disabled={!formValues.email && !formValues.password}
                 >
                     Submit
                 </button>

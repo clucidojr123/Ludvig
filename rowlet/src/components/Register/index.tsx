@@ -5,7 +5,7 @@ const WARIO_URI = process.env.REACT_APP_WARIO_URI || "";
 
 const defaultValues = {
     email: "",
-    username: "",
+    name: "",
     password: "",
 };
 
@@ -24,7 +24,7 @@ const Register: React.FC = () => {
 
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
-        const data = await fetch(`${WARIO_URI}/register`, {
+        const data = await fetch(`${WARIO_URI}/users/signup`, {
             method: "POST",
             credentials: "include",
             headers: {
@@ -33,7 +33,7 @@ const Register: React.FC = () => {
             body: JSON.stringify(formValues),
         });
         if (data.status === 200) {
-            navigate("/");
+            navigate("/login");
         } else {
             setError("Error When Submitting Form");
         }
@@ -55,7 +55,7 @@ const Register: React.FC = () => {
                 <input
                     type="text"
                     name="username"
-                    value={formValues.username}
+                    value={formValues.name}
                     required
                     onChange={handleInputChange}
                 />
@@ -70,7 +70,7 @@ const Register: React.FC = () => {
                 />
                 <button
                     type="submit"
-                    disabled={!formValues.username && !formValues.password}
+                    disabled={!formValues.name && !formValues.password}
                 >
                     Submit
                 </button>

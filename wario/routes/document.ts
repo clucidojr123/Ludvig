@@ -65,9 +65,10 @@ router.get(
                 })}\n\n`
             );
             res.on("close", () => {
+                console.log(`Closing Connection: ${req.params.uid}\n`);
                 connectionStore.endUIDConnection(req.params.uid);
             });
-            console.log(`Connected To Doc: ${req.params.id}\n`);
+            console.log(`Connected To Doc: ${req.params.uid}\n`);
         });
     }
 );
@@ -103,7 +104,7 @@ router.post(
         } else {
             // SANITY CHECK FOR OP AND VERSION
             const { op, version } = req.body;
-            if (!op || !version) {
+            if (!op || version === undefined) {
                 res.status(400)
                     .json({
                         error: true,
@@ -127,7 +128,7 @@ router.post(
                         return;
                     }
                     console.log(
-                        `Submitting Ops to ${uid}: \n${JSON.stringify(
+                        `Submitting Ops from ${uid}: \n${JSON.stringify(
                             req.body
                         )}\n`
                     );
