@@ -2,7 +2,7 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import passport, { isAuthenticated } from "../util/passport";
 import User, { IUser } from "../models/user";
-import { sendVerifyEmail } from "../util/email";
+import { sendVerifyEmail, sendTestEmail } from "../util/email";
 import { verifyToken } from "../util/token";
 
 const router = express.Router();
@@ -11,6 +11,11 @@ const router = express.Router();
 router.get("/get-session", isAuthenticated, (req, res) => {
     const user = req.user as IUser;
     res.status(200).json(user).end();
+});
+
+router.get("/test-email", async (req, res) => {
+    await sendTestEmail("clucidojr123@gmail.com");
+    res.status(200).end();
 });
 
 // LOGIN

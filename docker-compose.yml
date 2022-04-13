@@ -18,9 +18,6 @@ services:
     luigi:
         build: ./luigi
         image: luigi
-        volumes:
-            - ./luigi:/usr/luigi
-            - /usr/luigi/node_modules
         ports:
             - 5001
         depends_on:
@@ -32,9 +29,6 @@ services:
     wario:
         build: ./wario
         image: wario
-        volumes:
-            - ./wario:/usr/wario
-            - /usr/wario/node_modules
         ports:
             - 3001
         depends_on:
@@ -50,8 +44,6 @@ services:
     rowlet:
         build: ./rowlet
         image: rowlet
-        volumes:
-            - ./rowlet:/usr/rowlet
         ports:
             - 80:80
         depends_on:

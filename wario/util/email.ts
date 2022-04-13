@@ -80,3 +80,23 @@ export const sendVerifyEmail = async (user: IUser) => {
 
     return "OK";
 };
+
+export const sendTestEmail = async (email: string) => {
+    const mailOptions = {
+        from: "Test <cesare-fp2>",
+        to: email,
+        subject: "Test Email",
+        text: "testing",
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+            console.log(error);
+            return "ERROR";
+        } else {
+            console.log(`Email sent: ${info.response}`);
+        }
+    });
+
+    return "OK";
+};
