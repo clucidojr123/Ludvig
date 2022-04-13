@@ -40,7 +40,7 @@ router.post("/login", (req, res, next) => {
 // LOGOUT
 router.post("/logout", (req, res) => {
     req.logout();
-    res.status(200).end();
+    res.status(200).json({}).end();
 });
 
 // SIGN UP
@@ -68,7 +68,7 @@ router.post("/signup", async (req, res, next) => {
         await user.save();
         await sendVerifyEmail(user);
 
-        res.status(200).end();
+        res.status(200).json({}).end();
     } catch (err) {
         res.status(400)
             .json({ error: true, message: "Something bad happened" })
@@ -106,7 +106,7 @@ router.get("/verify", async (req, res, next) => {
         user.verified = true;
         await user.save();
 
-        res.status(200).end();
+        res.status(200).json({}).end();
         return next();
     } catch (err) {
         res.status(400)

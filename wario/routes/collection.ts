@@ -116,7 +116,7 @@ router.post("/delete", isAuthenticated, isVerified, async (req, res) => {
                 await DocumentName.deleteOne({ id: docid });
                 await docCollection.deleteOne({ _id: docid });
                 await o_docCollection.deleteOne({ d: docid });
-                res.status(200).end();
+                res.status(200).json({}).end();
                 return;
             }
         });
