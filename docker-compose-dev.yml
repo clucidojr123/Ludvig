@@ -6,6 +6,15 @@ services:
         restart: always
         ports:
             - 27017
+    s3:
+        image: minio/minio
+        ports:
+            - 9000:9000
+            - 9001:9001
+        environment:
+            - MINIO_ROOT_USER=ludvig
+            - MINIO_ROOT_PASSWORD=castillo
+        command: server /data --console-address :9001
     luigi:
         build: ./luigi
         image: luigi
@@ -29,6 +38,7 @@ services:
         depends_on:
             - mongo
             - luigi
+            - s3
         environment:
             - PORT=3001
             - LUIGI_URI=ws://luigi:5001

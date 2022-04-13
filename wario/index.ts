@@ -7,17 +7,38 @@ import mongoose from "mongoose";
 import userRouter from "./routes/user";
 import documentRouter from "./routes/document";
 import collectionRouter from "./routes/collection";
+import mediaRouter from "./routes/media";
 import { nanoid } from "nanoid";
 import passport from "./util/passport";
+import * as Minio from 'minio';
+import { S3Instance, customPolicy } from "./util/s3";
 
 const PORT = process.env.PORT || 3001;
 const MONGO_URI = process.env.MONGO_URI || "mongodb://mongo:27017/ludvig";
+const S3_URI = process.env.S3_URI || "s3";
 
 async function main() {
     const app = express();
     const server = http.createServer(app);
 
     await mongoose.connect(MONGO_URI);
+
+    const minioClient = new Minio.Client({
+        endPoint: S3_URI,
+        port: 9000,
+        useSSL: false,
+        accessKey: "ludvig",
+        secretKey: "castillo",
+    });
+
+    // Make the bucket if there is none
+    const bucketExists = await minioClient.bucketExists("doc-media");
+    if (!bucketExists) {
+        await minioClient.makeBucket("doc-media", "us-east-1");
+        await minioClient.setBucketPolicy('doc-media', JSON.stringify(customPolicy));
+    }
+
+    S3Instance.initialize(minioClient);
 
     // Enable CORS and expose needed headers
     app.use(
@@ -73,6 +94,7 @@ async function main() {
     app.use("/users", userRouter);
     app.use("/collection", collectionRouter);
     app.use("/doc", documentRouter);
+    app.use("/media", mediaRouter);
 
     // Start Server
     server.listen(PORT);
