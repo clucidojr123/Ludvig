@@ -28,6 +28,9 @@ router.post("/login", (req, res, next) => {
         if (!user) {
             return res.status(401).json({ error: true, message: info.message }).end();
         }
+        if (!user.verified) {
+            return res.status(401).json({ error: true, message: "Not verified" }).end();
+        }
         req.login(user, function (err) {
             if (err) {
                 return res.status(401).json({ error: true, message: JSON.stringify(err) }).end();
