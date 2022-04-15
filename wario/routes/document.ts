@@ -121,7 +121,7 @@ router.post(
                 if (doc.type) {
                     // IF VERSIONS DON'T MATCH
                     if (!doc.version || doc.version !== version) {
-                        res.status(400)
+                        res.status(200)
                             .json({
                                 status: "retry",
                             })
@@ -134,32 +134,28 @@ router.post(
                         )}\n`
                     );
                     // SUBMIT OP
-                    doc.submitOp(op, {}, (err) => {
-                        if (err) {
-                            console.log(err.message);
+                    doc.submitOp(op);
+                    connectionStore.data.forEach((val) => {
+                        // CURRENT CONNECTION
+                        if (val.uid === uid && !val.stream.writableEnded) {
+                            console.log(`Sending ACK to ${val.uid}\n`);
+                            val.stream.write(
+                                `data: ${JSON.stringify({ ack: op })}\n\n`
+                            );
                         }
-                        connectionStore.data.forEach((val) => {
-                            // CURRENT CONNECTION
-                            if (val.uid === uid && !val.stream.writableEnded) {
-                                console.log(`Sending ACK to ${val.uid}\n`);
-                                val.stream.write(
-                                    `data: ${JSON.stringify({ ack: op })}\n\n`
-                                );
-                            }
-                            // SEND OPS TO OTHER CONNECTIONS
-                            else if (
-                                !val.stream.writableEnded &&
-                                val.uid !== uid &&
-                                val.docid === docid
-                            ) {
-                                console.log(`Sending OPS to ${val.uid}\n`);
-                                val.stream.write(
-                                    `data: ${JSON.stringify(op)}\n\n`
-                                );
-                            }
-                        });
-                        res.status(200).json({ status: "ok" }).end();
+                        // SEND OPS TO OTHER CONNECTIONS
+                        else if (
+                            !val.stream.writableEnded &&
+                            val.uid !== uid &&
+                            val.docid === docid
+                        ) {
+                            console.log(`Sending OPS to ${val.uid}\n`);
+                            val.stream.write(
+                                `data: ${JSON.stringify(op)}\n\n`
+                            );
+                        }
                     });
+                    res.status(200).json({ status: "ok" }).end();
                 } else {
                     res.status(400)
                         .json({

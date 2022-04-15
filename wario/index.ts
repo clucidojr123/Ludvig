@@ -14,8 +14,8 @@ import * as Minio from 'minio';
 import { S3Instance, customPolicy } from "./util/s3";
 
 const PORT = process.env.PORT || 3001;
-const MONGO_URI = process.env.MONGO_URI || "mongodb://mongo:27017/ludvig";
-const S3_URI = process.env.S3_URI || "s3";
+const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/ludvig";
+const S3_URI = process.env.S3_URI || "localhost";
 
 async function main() {
     const app = express();

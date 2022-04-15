@@ -3,7 +3,7 @@ import { IUser } from "../models/user";
 import { generateToken } from "./token";
 
 const transporter = nodemailer.createTransport({
-    host: "mail",
+    host: "localhost",
     port: 25,
     tls:{
         rejectUnauthorized: false
@@ -21,7 +21,7 @@ const generateVerifyEmailHTML = (id: string, token: string) => {
                 <table cellspacing="0" cellpadding="0">
                     <tr>
                         <td style="border-radius: 2px;" bgcolor="blue">
-                            <a href="${process.env.ORIGIN}/users/verify/?id=${id}&key=${token}" target="_blank" 
+                            <a href="http://gigabossofswag.cse356.compas.cs.stonybrook.edu/users/verify/?id=${id}&key=${token}" target="_blank" 
                                 style="
                                     padding: 8px 12px; 
                                     border: 1px solid black;
@@ -39,7 +39,7 @@ const generateVerifyEmailHTML = (id: string, token: string) => {
             </td>
         </tr>
         </table>
-        <p>Direct Link: ${process.env.ORIGIN}/users/verify/?id=${id}&key=${token}</p>
+        <p>Direct Link: http://gigabossofswag.cse356.compas.cs.stonybrook.edu/users/verify/?id=${id}&key=${token}</p>
         <p>Sincerely, <br>Giga Boss of Swag</p>
         </body>
     `;
@@ -50,7 +50,7 @@ const generateVerifyEmailText = (id: string, token: string) => {
     const textTemplate = `
         Hello There!\n\n
         You can verify your email by clicking on the following link:\n\n
-        ${process.env.ORIGIN}/verify/?id=${id}&key=${token}\n\n
+        http://gigabossofswag.cse356.compas.cs.stonybrook.edu/verify/?id=${id}&key=${token}\n\n
         Sincerely,\n
         Giga Boss of Swag
     `;
@@ -62,7 +62,7 @@ export const sendVerifyEmail = async (user: IUser) => {
     const token = generateToken(user);
 
     const mailOptions = {
-        from: "Test",
+        from: "Test <cesare-fp2>",
         to: user.email,
         subject: "Verify Your GigaBossOfSwag Account Email",
         text: generateVerifyEmailText(user._id, token),
@@ -83,7 +83,7 @@ export const sendVerifyEmail = async (user: IUser) => {
 
 export const sendTestEmail = async (email: string) => {
     const mailOptions = {
-        from: "Test",
+        from: "Test <cesare-fp2>",
         to: email,
         subject: "Test Email",
         text: "testing",

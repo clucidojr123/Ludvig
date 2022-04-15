@@ -5,7 +5,7 @@ import QuillCursors from "quill-cursors";
 import Delta, { Op } from "quill-delta";
 import { nanoid } from "nanoid";
 import { useParams } from "react-router-dom";
-const WARIO_URI = process.env.REACT_APP_WARIO_URI || "";
+const WARIO_URI = process.env.REACT_APP_WARIO_URI || "http://gigabossofswag.cse356.compas.cs.stonybrook.edu";
 const S3_ACCESS_URI = process.env.REACT_APP_S3_ACCESS_URI || "http://gigabossofswag.cse356.compas.cs.stonybrook.edu/media/access";
 
 const Document = () => {
