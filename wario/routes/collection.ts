@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import { isAuthenticated, isVerified } from "../util/passport";
 import { DocumentName } from "../models/documentName";
 import { nanoid } from "nanoid";
+import { DataStore } from "../util/connection";
 
 const router = express.Router();
 
@@ -15,7 +16,6 @@ router.get("/list", isAuthenticated, isVerified, async (req, res) => {
         const res = await DocumentName.findOne({ id: val._id });
         return { name: res?.name || "NULL", id: val._id }
     }));
-
     if (docList) {
         res.json(docList).end();
     } else {
@@ -39,9 +39,9 @@ router.post("/create", isAuthenticated, isVerified, async (req, res) => {
             .end();
         return;
     }
-    const docid = nanoid()
+    const docid = nanoid();
     const doc = ShareDBConnection.get("documents", docid);
-    doc.fetch((err) => {
+    doc.subscribe((err) => {
         if (err) {
             res.status(400)
                 .json({ error: true, message: "Something Bad Happened" })
@@ -49,10 +49,9 @@ router.post("/create", isAuthenticated, isVerified, async (req, res) => {
             console.error(err);
             return;
         }
-        // If doc.type is undefined, the document has not been created
         if (!doc.type) {
             doc.create(
-                [{ insert: "" }],
+                [],
                 "rich-text",
                 async (error) => {
                     if (error) {
@@ -65,13 +64,39 @@ router.post("/create", isAuthenticated, isVerified, async (req, res) => {
                         console.error(error);
                         return;
                     }
+                    DataStore[docid] = { version: 1, connections: [] };
+                    doc.submitSource = true;
+                    doc.on('op', (op, source) => {
+                        if (DataStore[docid]) {
+                            const { connections } = DataStore[docid];
+                            connections.forEach((val) => {
+                                if (source === val.uid && !val.stream.writableEnded) {
+                                    console.log(`Sending ACK to ${val.uid}\n`);
+                                    val.stream.write(
+                                        `data: ${JSON.stringify({ ack: op })}\n\n`
+                                    );
+                                } else if (!val.stream.writableEnded) {
+                                    console.log(`Sending OPS to ${val.uid}\n`);
+                                    val.stream.write(
+                                        `data: ${JSON.stringify(op)}\n\n`
+                                    );
+                                }
+                            })
+                        }
+                    });
                     await DocumentName.create({ name, id: docid });
                     res.status(200).json({ docid: doc.id }).end();
                     return;
                 }
             );
         } else {
-            res.status(200).json({ docid: doc.id }).end();
+            res.status(400)
+                    .json({
+                        error: true,
+                        message: "Duplicate nanoid?!",
+                    })
+                    .end();
+            return;
         }
     });
 });
@@ -116,6 +141,9 @@ router.post("/delete", isAuthenticated, isVerified, async (req, res) => {
                 await DocumentName.deleteOne({ id: docid });
                 await docCollection.deleteOne({ _id: docid });
                 await o_docCollection.deleteOne({ d: docid });
+                if (DataStore[docid]) {
+                    delete DataStore[docid];
+                }
                 res.status(200).json({}).end();
                 return;
             }

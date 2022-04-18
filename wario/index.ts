@@ -12,6 +12,7 @@ import { nanoid } from "nanoid";
 import passport from "./util/passport";
 import * as Minio from 'minio';
 import { S3Instance, customPolicy } from "./util/s3";
+import path from "path";
 
 const PORT = process.env.PORT || 3001;
 const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/ludvig";
@@ -20,7 +21,6 @@ const S3_URI = process.env.S3_URI || "localhost";
 async function main() {
     const app = express();
     const server = http.createServer(app);
-
     await mongoose.connect(MONGO_URI);
 
     const minioClient = new Minio.Client({
@@ -82,13 +82,21 @@ async function main() {
         })
     );
 
+    // app.use(express.static(path.join(__dirname, "../rowlet", "build")));
     app.use(passport.initialize());
     app.use(passport.session());
 
-    // Sanity Check
-    app.get("/", (req, res, next) => {
-        res.send("gigabossofswag-test").end();
-    });
+    // app.get("/", (req, res, next) => {
+    //     res.sendFile(path.join(__dirname, "../rowlet", "build", "index.html"));
+    // });
+
+    // app.get("/home", (req, res, next) => {
+    //     res.sendFile(path.join(__dirname, "../rowlet", "build", "index.html"));
+    // });
+
+    // app.get("/doc/edit/:id", (req, res, next) => {
+    //     res.sendFile(path.join(__dirname, "../rowlet", "build", "index.html"));
+    // });
 
     // Add routes
     app.use("/users", userRouter);

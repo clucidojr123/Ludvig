@@ -99,7 +99,6 @@ router.get(
             res.write(data);
             res.end();
         }
-       
     }
 );
 
