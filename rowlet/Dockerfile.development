@@ -11,6 +11,3 @@ RUN npm install
 
 # Copy over repo
 COPY . .
-
-ENV REACT_APP_WARIO_URI http://localhost:3001
-ENV REACT_APP_S3_ACCESS_URI http://localhost:9000/doc-media

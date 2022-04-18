@@ -5,10 +5,11 @@ import { nanoid } from "nanoid";
 import { IUser } from "../models/user";
 import fileType from "file-type";
 import { S3Instance } from "../util/s3";
+import fetch from 'node-fetch';
 
 const router = express.Router();
 
-const ALLOWED_FILE_TYPES = ["jpeg", "png"];
+const ALLOWED_FILE_TYPES = ["jpeg", "jpg", "png"];
 
 const upload = (req: Request, res: Response, next: NextFunction) => {
     multer().single("file")(req, res, (err) => {
@@ -47,10 +48,15 @@ router.post(
         let mimeType = "";
         const fType = await fileType.fromBuffer(file.buffer);
         if (!fType || !ALLOWED_FILE_TYPES.includes(fType.ext)) {
-            res.status(400).json({
-                error: true,
-                message: "Invalid file type.",
-            });
+            if (fType) {
+                console.log(fType);
+            }
+            res.status(400)
+                .json({
+                    error: true,
+                    message: "Invalid file type.",
+                })
+                .end();
             return next();
         }
 
@@ -66,6 +72,33 @@ router.post(
 
         res.status(200).json({ mediaid: fileName }).end();
         return next();
+    }
+);
+
+router.get(
+    "/access/:mediaid",
+    isAuthenticated,
+    isVerified,
+    async (req, res) => {
+        const result = await fetch(
+            `http://localhost:9000/doc-media/${req.params.mediaid}`,
+            {
+                method: "GET",
+            }
+        );
+        if (result.status !== 200) {
+            res.status(400)
+                .json({
+                    error: true,
+                    message: "Invalid Media ID",
+                })
+                .end();
+        } else {
+            const data = await result.buffer();
+            res.writeHead(200, {"Content-Type": result.headers.get("Content-Type") || "application/json"});
+            res.write(data);
+            res.end();
+        }
     }
 );
 

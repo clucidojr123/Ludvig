@@ -5,16 +5,16 @@ import QuillCursors from "quill-cursors";
 import Delta, { Op } from "quill-delta";
 import { nanoid } from "nanoid";
 import { useParams } from "react-router-dom";
-const WARIO_URI = process.env.REACT_APP_WARIO_URI || "";
+const WARIO_URI = process.env.REACT_APP_WARIO_URI || "http://gigabossofswag.cse356.compas.cs.stonybrook.edu";
 const S3_ACCESS_URI = process.env.REACT_APP_S3_ACCESS_URI || "http://gigabossofswag.cse356.compas.cs.stonybrook.edu/media/access";
 
 const Document = () => {
     const { docID } = useParams();
     const [connectID] = useState<string>(nanoid());
-    const [quill, setQuill] = useState<Quill>();
-    const [cursors, setCursors] = useState<QuillCursors>();
     const quillRef = useRef(null);
     const vRef = useRef({ version: 0 });
+    const cRef = useRef<QuillCursors>();
+    const quill = useRef<Quill>();
 
     const sendOps = async (ops: any[]) => {
         const payload = JSON.stringify({ op: ops, version: vRef.current.version });
@@ -47,19 +47,19 @@ const Document = () => {
 
     const handleIncomingData = (e: MessageEvent<any>) => {
         const data = JSON.parse(e.data);
-        if (!data || !quill || !cursors) {
+        if (!data || !quill.current || !cRef.current) {
             console.log(
                 "Recieved message with undefined data or quill or cursors is undefined!"
             );
         } else if (data.content) {
             console.log("Recieved Initial Data");
             vRef.current.version = data.version;
-            quill.setContents(data.content);
+            quill.current.setContents(data.content);
         } else if (Array.isArray(data)) {
             const newOps = data as Op[];
             console.log(`Recieved New Ops: \n${JSON.stringify(newOps)}`);
             // @ts-ignore
-            quill.updateContents(new Delta(newOps));
+            quill.current.updateContents(new Delta(newOps));
             vRef.current.version++;
         } else if (data.ack) {
             console.log("Recieved ACK");
@@ -70,17 +70,17 @@ const Document = () => {
                 const newColor = Math.floor(Math.random() * 16777215).toString(
                     16
                 );
-                cursors.createCursor(
+                cRef.current.createCursor(
                     data.presence.id,
                     data.presence.cursor.name,
                     `#${newColor}`
                 );
-                cursors.moveCursor(data.presence.id, {
+                cRef.current.moveCursor(data.presence.id, {
                     index: data.presence.cursor.index,
                     length: data.presence.cursor.length,
                 });
             } else {
-                cursors.removeCursor(data.presence.id);
+                cRef.current.removeCursor(data.presence.id);
             }
         }
     };
@@ -139,16 +139,16 @@ const Document = () => {
 
     function insertToEditor(mediaid: string) {
         // push image url to rich editor.
-        if (quill) {
-            const range = quill.getSelection();
-            const delta = quill.insertEmbed(range?.index || 0, "image", `${S3_ACCESS_URI}/${mediaid}`);
+        if (quill.current) {
+            const range = quill.current.getSelection();
+            const delta = quill.current.insertEmbed(range?.index || 0, "image", `${S3_ACCESS_URI}/${mediaid}`);
             sendOps(delta.ops);
         }
     }
 
     useEffect(() => {
         Quill.register("modules/cursors", QuillCursors);
-        setQuill(
+        quill.current = (
             new Quill("#editor", {
                 modules: { toolbar: "#toolbar", cursors: true },
                 theme: "snow",
@@ -157,16 +157,11 @@ const Document = () => {
     }, [quillRef]);
 
     useEffect(() => {
-        if (quill) {
-            setCursors(quill.getModule("cursors"));
-            quill.getModule("toolbar").addHandler("image", () => {
+        if (quill.current) {
+            cRef.current = quill.current.getModule("cursors");
+            quill.current.getModule("toolbar").addHandler("image", () => {
                 selectLocalImage();
             });
-        }
-    }, [quill]);
-
-    useEffect(() => {
-        if (quill && cursors) {
             console.log("Connection ID: " + connectID);
             const evInstance = new EventSource(
                 `${WARIO_URI}/doc/connect/${docID}/${connectID}`,
@@ -177,10 +172,10 @@ const Document = () => {
                 evInstance.close();
             });
             // @ts-ignore
-            quill.on("text-change", onTextChange);
-            quill.on("selection-change", onSelectChange);
+            quill.current.on("text-change", onTextChange);
+            quill.current.on("selection-change", onSelectChange);
         }
-    }, [cursors]);
+    }, [quill]);
 
     return (
         <div>
@@ -191,7 +186,7 @@ const Document = () => {
                 <button className="ql-image">Image</button>
             </div>
             <div id="editor" ref={quillRef}></div>
-            <script src="https://cdn.quilljs.com/1.0.0/quill.js"></script>
+            <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
         </div>
     );
 };

@@ -15,6 +15,13 @@ interface Connection {
     stream: express.Response;
 }
 
+interface DocData {
+    version: number;
+    connections: { uid: string, stream: express.Response }[];
+}
+
+export const DataStore : Record<string, DocData> = {};
+
 class CurrentConnections {
     data: Connection[];
 

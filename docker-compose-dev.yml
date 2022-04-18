@@ -5,12 +5,7 @@ services:
         image: mongo
         restart: always
         ports:
-            - 27017
-    mail:
-        image: bytemark/smtp
-        restart: always
-        ports: 
-            - 25:25
+            - 27017:27017
     s3:
         image: minio/minio
         ports:
@@ -33,31 +28,29 @@ services:
             - PORT=5001
             - MONGO_URI=mongodb://mongo:27017/ludvig
         command: npm run dev  
-    wario:
-        build: ./wario
-        image: wario
-        volumes:
-            - ./wario:/usr/wario
-        ports:
-            - 3001:3001
-        depends_on:
-            - mongo
-            - luigi
-            - s3
-        environment:
-            - PORT=3001
-            - LUIGI_URI=ws://luigi:5001
-            - ORIGIN=http://localhost:3001
-        command: npm run dev
-    rowlet:
-        build: 
-            context: ./rowlet
-            dockerfile: Dockerfile.development
-        image: rowlet
-        volumes:
-            - ./rowlet:/usr/rowlet
-        ports:
-            - 3000:3000
-        depends_on:
-            - wario
-        command: npm start
+    # wario:
+    #     build: ./wario
+    #     image: wario
+    #     volumes:
+    #         - ./wario:/usr/wario
+    #     ports:
+    #         - 3001:3001
+    #     depends_on:
+    #         - mongo
+    #         - luigi
+    #         - s3
+    #     environment:
+    #         - PORT=3001
+    #         - LUIGI_URI=ws://luigi:5001
+    #         - ORIGIN=http://localhost:3001
+    #     command: npm run dev
+    # rowlet:
+    #     build: 
+    #         context: ./rowlet
+    #         dockerfile: Dockerfile.development
+    #     image: rowlet
+    #     volumes:
+    #         - ./rowlet:/usr/rowlet
+    #     ports:
+    #         - 3000:3000
+    #     command: npm start
