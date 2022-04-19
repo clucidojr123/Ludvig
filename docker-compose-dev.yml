@@ -3,7 +3,6 @@ version: '3'
 services:
     mongo:
         image: mongo
-        restart: always
         ports:
             - 27017:27017
     s3:
@@ -28,29 +27,34 @@ services:
             - PORT=5001
             - MONGO_URI=mongodb://mongo:27017/ludvig
         command: npm run dev  
-    # wario:
-    #     build: ./wario
-    #     image: wario
-    #     volumes:
-    #         - ./wario:/usr/wario
-    #     ports:
-    #         - 3001:3001
-    #     depends_on:
-    #         - mongo
-    #         - luigi
-    #         - s3
-    #     environment:
-    #         - PORT=3001
-    #         - LUIGI_URI=ws://luigi:5001
-    #         - ORIGIN=http://localhost:3001
-    #     command: npm run dev
-    # rowlet:
-    #     build: 
-    #         context: ./rowlet
-    #         dockerfile: Dockerfile.development
-    #     image: rowlet
-    #     volumes:
-    #         - ./rowlet:/usr/rowlet
-    #     ports:
-    #         - 3000:3000
-    #     command: npm start
+    wario:
+        build: ./wario
+        image: wario
+        volumes:
+            - ./wario:/usr/wario
+        ports:
+            - 3001:3001
+        depends_on:
+            - mongo
+            - luigi
+            - s3
+        environment:
+            - PORT=3001
+            - LUIGI_URI=ws://luigi:5001
+            - ORIGIN=http://localhost:3001
+            - MONGO_URI=mongodb://mongo:27017/ludvig
+            - S3_URI=s3
+        command: npm run dev
+    rowlet:
+        build: 
+            context: ./rowlet
+            dockerfile: Dockerfile.development
+        image: rowlet
+        volumes:
+            - ./rowlet:/usr/rowlet
+        ports:
+            - 3000:3000
+        environment:
+            - REACT_APP_WARIO_URI=http://localhost:3001
+            - REACT_APP_S3_ACCESS_URI=http://localhost:3001/media/access
+        command: npm start

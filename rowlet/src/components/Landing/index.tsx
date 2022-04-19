@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-
-const WARIO_URI = process.env.REACT_APP_WARIO_URI || "http://gigabossofswag.cse356.compas.cs.stonybrook.edu";
+import { WARIO_URI } from "../../config";
 
 function Home() {
     const [user, setUser] = useState<Record<any, any> | string>(

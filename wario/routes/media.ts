@@ -81,7 +81,7 @@ router.get(
     isVerified,
     async (req, res) => {
         const result = await fetch(
-            `http://localhost:9000/doc-media/${req.params.mediaid}`,
+            `http://${process.env.S3_URI || "localhost"}:9000/doc-media/${req.params.mediaid}`,
             {
                 method: "GET",
             }
