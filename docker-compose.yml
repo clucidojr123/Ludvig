@@ -5,7 +5,7 @@ services:
         image: mongo
         restart: always
         ports:
-            - 27017
+            - 49153:27017
     s3:
         image: minio/minio
         ports:
@@ -19,7 +19,7 @@ services:
         build: ./luigi
         image: luigi
         ports:
-            - 5001
+            - 49154:5001
         depends_on:
             - mongo
         environment:

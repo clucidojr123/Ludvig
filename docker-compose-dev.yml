@@ -4,7 +4,7 @@ services:
     mongo:
         image: mongo
         ports:
-            - 27017:27017
+            - 49153:27017
     s3:
         image: minio/minio
         ports:
@@ -20,7 +20,7 @@ services:
         volumes:
             - ./luigi:/usr/luigi
         ports:
-            - 5001:5001
+            - 49154:5001
         depends_on:
             - mongo
         environment:

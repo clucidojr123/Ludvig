@@ -6,7 +6,7 @@ import richText from "rich-text";
 // @ts-ignore -- no type declarations available at the moment
 import { QuillDeltaToHtmlConverter } from "quill-delta-to-html";
 
-const LUIGI_URI = process.env.LUIGI_URI || "ws://localhost:5001";
+const LUIGI_URI = process.env.LUIGI_URI || "ws://localhost:49154";
 
 export const wsInstance = new WebSocket(LUIGI_URI);
 

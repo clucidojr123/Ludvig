@@ -15,7 +15,7 @@ import { S3Instance, customPolicy } from "./util/s3";
 import path from "path";
 
 const PORT = process.env.PORT || 3001;
-const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/ludvig";
+const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:49153/ludvig";
 const S3_URI = process.env.S3_URI || "localhost";
 
 async function main() {
