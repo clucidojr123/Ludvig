@@ -5,6 +5,13 @@ services:
         image: mongo
         ports:
             - 49153:27017
+    elasticsearch:
+        image: elasticsearch:8.1.2
+        ports:
+            - 9200:9200
+            - 9300:9300
+        environment:
+            - "discovery.type=single-node"
     s3:
         image: minio/minio
         ports:
@@ -45,11 +52,11 @@ services:
             - MONGO_URI=mongodb://mongo:27017/ludvig
             - S3_URI=s3
         command: npm run dev
-    rowlet:
+    rowlet-dev:
         build: 
             context: ./rowlet
             dockerfile: Dockerfile.development
-        image: rowlet
+        image: rowlet-dev
         volumes:
             - ./rowlet:/usr/rowlet
         ports:

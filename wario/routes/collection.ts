@@ -30,6 +30,8 @@ router.get("/list", isAuthenticated, isVerified, async (req, res) => {
 
 router.post("/create", isAuthenticated, isVerified, async (req, res) => {
     const { name } = req.body;
+    const { db } = mongoose.connection;
+    const docCollection = db.collection("documents");
     if (!name) {
         res.status(400)
             .json({
@@ -85,6 +87,7 @@ router.post("/create", isAuthenticated, isVerified, async (req, res) => {
                         }
                     });
                     await DocumentName.create({ name, id: docid });
+                    await docCollection.findOneAndUpdate({ _id: docid }, { $set: { "_m.name": name }});
                     res.status(200).json({ docid: doc.id }).end();
                     return;
                 }

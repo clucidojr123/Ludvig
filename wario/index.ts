@@ -98,6 +98,10 @@ async function main() {
     //     res.sendFile(path.join(__dirname, "../rowlet", "build", "index.html"));
     // });
 
+    app.get("/", (req, res, next) => {
+        res.send("Hello World").end();
+    });
+
     // Add routes
     app.use("/users", userRouter);
     app.use("/collection", collectionRouter);

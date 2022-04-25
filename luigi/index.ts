@@ -10,6 +10,7 @@ import richText from "rich-text";
 import Delta from "quill-delta";
 // @ts-ignore
 import ShareDBMongo from "sharedb-mongo";
+import { QuillDeltaToHtmlConverter } from "quill-delta-to-html";
 
 
 const PORT = process.env.PORT || 5001;
@@ -26,6 +27,15 @@ async function main() {
 
     // Initialize ShareDB
     const share = new ShareDB({ db: db, presence: true });
+
+    share.use("afterWrite", (context, next) => {
+        if (context.snapshot?.m?.name) {
+            const result = new QuillDeltaToHtmlConverter(context.snapshot.data.ops);
+            const rendered = result.convert();
+            console.log({ id: context.snapshot.id, name: context.snapshot.m?.name || "", content: rendered  });
+        };
+        next();
+    });
 
     // Connect incoming WebSocket connections to ShareDB
     const wss = new WebSocket.Server({ server: server });
