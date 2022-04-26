@@ -7,13 +7,14 @@ import WebSocket from "ws";
 import WebSocketJSONStream from "@teamwork/websocket-json-stream";
 // @ts-ignore -- no type declarations available at the moment
 import richText from "rich-text";
-import Delta from "quill-delta";
 // @ts-ignore
 import ShareDBMongo from "sharedb-mongo";
 import { QuillDeltaToHtmlConverter } from "quill-delta-to-html";
-
+import { stripHtml } from "string-strip-html";
+import fetch from "node-fetch";
 
 const PORT = process.env.PORT || 5001;
+const ES_URI = process.env.ES_URI || "http://elasticsearch:9200"
 
 // Register Quill-Delta OT Type with ShareDB
 ShareDB.types.register(richText.type);
@@ -28,14 +29,22 @@ async function main() {
     // Initialize ShareDB
     const share = new ShareDB({ db: db, presence: true });
 
-    share.use("afterWrite", (context, next) => {
-        if (context.snapshot?.m?.name) {
-            const result = new QuillDeltaToHtmlConverter(context.snapshot.data.ops);
-            const rendered = result.convert();
-            console.log({ id: context.snapshot.id, name: context.snapshot.m?.name || "", content: rendered  });
-        };
-        next();
-    });
+    // share.use("afterWrite", async (context, next) => {
+    //     if (context.snapshot?.m?.name) {
+    //         const result = new QuillDeltaToHtmlConverter(context.snapshot.data.ops);
+    //         const rendered = result.convert();
+    //         const stripped = stripHtml(rendered).result;
+    //         const res = await fetch(`${ES_URI}/ludvig/_doc/${context.snapshot.id}`, {
+    //             method: "PUT",
+    //             headers: {
+    //                 "Content-Type": "application/json",
+    //             },
+    //             body: JSON.stringify({ name: context.snapshot.m?.name || "", content: stripped  })
+    //         });
+    //         console.log(`Submitted ${context.snapshot.m?.name || ""} (${context.snapshot.id}) to ES: ${res.status}`)
+    //     };
+    //     next();
+    // });
 
     // Connect incoming WebSocket connections to ShareDB
     const wss = new WebSocket.Server({ server: server });

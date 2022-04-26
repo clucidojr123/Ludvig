@@ -7,6 +7,7 @@ import mongoose from "mongoose";
 import userRouter from "./routes/user";
 import documentRouter from "./routes/document";
 import collectionRouter from "./routes/collection";
+import indexRouter from "./routes/index";
 import mediaRouter from "./routes/media";
 import { nanoid } from "nanoid";
 import passport from "./util/passport";
@@ -60,7 +61,7 @@ async function main() {
         next();
     });
 
-    app.use(express.json());
+    app.use(express.json({ limit: '10MB' }));
     app.use(
         express.urlencoded({
             extended: true,
@@ -107,6 +108,7 @@ async function main() {
     app.use("/collection", collectionRouter);
     app.use("/doc", documentRouter);
     app.use("/media", mediaRouter);
+    app.use("/index", indexRouter);
 
     // Start Server
     server.listen(PORT);

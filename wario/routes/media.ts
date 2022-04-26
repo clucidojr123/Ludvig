@@ -9,7 +9,7 @@ import fetch from 'node-fetch';
 
 const router = express.Router();
 
-const ALLOWED_FILE_TYPES = ["jpeg", "jpg", "png"];
+const ALLOWED_FILE_TYPES = ["jpeg", "jpg", "png", "gif"];
 
 const upload = (req: Request, res: Response, next: NextFunction) => {
     multer().single("file")(req, res, (err) => {

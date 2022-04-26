@@ -12,6 +12,7 @@ services:
             - 9300:9300
         environment:
             - "discovery.type=single-node"
+            - "xpack.security.enabled=false"
     s3:
         image: minio/minio
         ports:

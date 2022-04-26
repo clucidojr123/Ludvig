@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import "quill/dist/quill.snow.css";
 import Quill, { RangeStatic } from "quill";
 import QuillCursors from "quill-cursors";
@@ -13,7 +14,8 @@ const Document = () => {
     const quillRef = useRef(null);
     const vRef = useRef({ version: 0 });
     const cRef = useRef<QuillCursors>();
-    const quill = useRef<Quill>();
+    const quill = useRef<Quill>();    
+    const navigate = useNavigate();
 
     const sendOps = async (ops: any[]) => {
         const payload = JSON.stringify({ op: ops, version: vRef.current.version });
@@ -179,6 +181,7 @@ const Document = () => {
     return (
         <div>
             GIGA BOSS (OF SWAG)
+            <button onClick={() => { navigate("/home") }}>Home</button>
             <div id="toolbar">
                 <button className="ql-bold">Bold</button>
                 <button className="ql-italic">Italic</button>
