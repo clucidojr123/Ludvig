@@ -6,6 +6,15 @@ services:
         restart: always
         ports:
             - 49153:27017
+    elasticsearch:
+        image: elasticsearch:8.1.2
+        ports:
+            - 9200:9200
+            - 9300:9300
+        environment:
+            - "discovery.type=single-node"
+            - "xpack.security.enabled=false"
+            - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
     s3:
         image: minio/minio
         ports:
@@ -40,14 +49,14 @@ services:
     #         - LUIGI_URI=ws://luigi:5001
     #         - ORIGIN=http://gigabossofswag.cse356.compas.cs.stonybrook.edu
     #     command: npm run prod
-    rowlet:
-        build: ./rowlet
-        image: rowlet
-        ports:
-            - 80:80
-        environment:
-            - REACT_APP_WARIO_URI=http://gigabossofswag.cse356.compas.cs.stonybrook.edu
-            - REACT_APP_S3_ACCESS_URI=http://gigabossofswag.cse356.compas.cs.stonybrook.edu/media/access
+    # rowlet:
+    #     build: ./rowlet
+    #     image: rowlet
+    #     ports:
+    #         - 80:80
+    #     environment:
+    #         - REACT_APP_WARIO_URI=http://gigabossofswag.cse356.compas.cs.stonybrook.edu
+    #         - REACT_APP_S3_ACCESS_URI=http://gigabossofswag.cse356.compas.cs.stonybrook.edu/media/access
         # depends_on:
         #     - wario
     # using multistage dockerfile in rowlet for now

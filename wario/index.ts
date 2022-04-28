@@ -7,15 +7,18 @@ import mongoose from "mongoose";
 import userRouter from "./routes/user";
 import documentRouter from "./routes/document";
 import collectionRouter from "./routes/collection";
-import indexRouter from "./routes/index";
+import searchRouter from "./routes/search";
 import mediaRouter from "./routes/media";
 import { nanoid } from "nanoid";
 import passport from "./util/passport";
 import * as Minio from 'minio';
 import { S3Instance, customPolicy } from "./util/s3";
+import { RedisInstance } from "./util/redis";
+import { createClient } from 'redis';
 import path from "path";
 
 const PORT = process.env.PORT || 3001;
+// const PORT = 80;
 const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:49153/ludvig";
 const S3_URI = process.env.S3_URI || "localhost";
 
@@ -41,6 +44,9 @@ async function main() {
 
     S3Instance.initialize(minioClient);
 
+    RedisInstance.on('error', (err) => console.log('Redis Client Error', err));
+    RedisInstance.connect();
+
     // Enable CORS and expose needed headers
     app.use(
         cors({
@@ -65,6 +71,7 @@ async function main() {
     app.use(
         express.urlencoded({
             extended: true,
+            limit: "10MB"
         })
     );
 
@@ -75,11 +82,11 @@ async function main() {
             resave: false,
             saveUninitialized: false,
             secret: "Archibald Castillo",
-            store: new MongoStore({
-                mongoUrl: MONGO_URI,
-                touchAfter: 24 * 3600, // Lazy update session
-                ttl: 14 * 24 * 60 * 60, // TTL = 14 Days
-            }),
+            // store: new MongoStore({
+            //     mongoUrl: MONGO_URI,
+            //     touchAfter: 24 * 3600, // Lazy update session
+            //     ttl: 14 * 24 * 60 * 60, // TTL = 14 Days
+            // }),
         })
     );
 
@@ -108,7 +115,7 @@ async function main() {
     app.use("/collection", collectionRouter);
     app.use("/doc", documentRouter);
     app.use("/media", mediaRouter);
-    app.use("/index", indexRouter);
+    app.use("/index", searchRouter);
 
     // Start Server
     server.listen(PORT);

@@ -4,6 +4,7 @@ import { NativeError } from "mongoose";
 import passport from "passport";
 import passportLocal from "passport-local";
 import User, { IUser } from "../models/user";
+import { getUser } from "./redis";
 
 const LocalStrategy = passportLocal.Strategy;
 
@@ -11,8 +12,14 @@ passport.serializeUser<any, any>((_, user, done) => {
     done(undefined, user);
 });
 
-passport.deserializeUser((id, done) => {
-    User.findById(id, (err: NativeError, user: IUser) => done(err, user));
+passport.deserializeUser(async (id, done) => {
+    const user = await getUser(id as string);
+    if (user) {
+        done(undefined, user);
+    } else {
+        done(new Error("Unable to get user"), null);
+    }
+    // User.findById(id, (err: NativeError, user: IUser) => done(err, user));
 });
 
 // Local Strategy
@@ -48,17 +55,18 @@ export const isAuthenticated = (
     next: NextFunction
 ) => {
     if (req.isAuthenticated()) return next();
-    res.status(401).json({ error: true, message: "not logged in" });
+    res.status(401).json({ error: true, message: "not logged in" }).end();
 };
 
 export const isVerified = (req: Request, res: Response, next: NextFunction) => {
-    const user = req.user as IUser;
-    if (!user.verified)
-        res.status(401).json({
-            error: true,
-            message: "must be verified to perform requested action",
-        });
-    else return next();
+    // const user = req.user as IUser;
+    // if (!user.verified)
+    //     res.status(401).json({
+    //         error: true,
+    //         message: "must be verified to perform requested action",
+    //     }).end();
+    // else return next();
+    return next();
 };
 
 export default passport;

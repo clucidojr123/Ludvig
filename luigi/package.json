@@ -16,6 +16,7 @@
     "@teamwork/websocket-json-stream": "^2.0.0",
     "cors": "^2.8.5",
     "express": "^4.17.3",
+    "lodash": "^4.17.21",
     "mongoose": "^6.2.9",
     "node-fetch": "^2.6.7",
     "quill-delta": "^4.0.1",
@@ -30,6 +31,7 @@
   "devDependencies": {
     "@types/cors": "^2.8.12",
     "@types/express": "^4.17.13",
+    "@types/lodash": "^4.14.182",
     "@types/node": "^17.0.23",
     "@types/node-fetch": "^2.6.1",
     "@types/sharedb": "^2.2.0",

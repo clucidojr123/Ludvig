@@ -4,6 +4,7 @@ import passport, { isAuthenticated } from "../util/passport";
 import User, { IUser } from "../models/user";
 import { sendVerifyEmail, sendTestEmail } from "../util/email";
 import { verifyToken } from "../util/token";
+import { getUser, setUser } from "../util/redis";
 
 const router = express.Router();
 
@@ -23,16 +24,20 @@ router.post("/login", (req, res, next) => {
     // Pass request information to passport
     passport.authenticate("local", function (err, user, info) {
         if (err) {
+            console.log(JSON.stringify(err));
             return res.status(401).json({ error: true, message: JSON.stringify(err) }).end();
         }
         if (!user) {
+            console.log("No user found");
             return res.status(401).json({ error: true, message: info.message }).end();
         }
-        if (!user.verified) {
-            return res.status(401).json({ error: true, message: "Not verified" }).end();
-        }
+        // if (!user.verified) {
+        //     console.log("Not verified");
+        //     return res.status(401).json({ error: true, message: "Not verified" }).end();
+        // }
         req.login(user, function (err) {
             if (err) {
+                console.log(JSON.stringify(err));
                 return res.status(401).json({ error: true, message: JSON.stringify(err) }).end();
             }
             return res.status(200).json({ name: user.name }).end();
@@ -89,7 +94,7 @@ router.get("/verify", async (req, res, next) => {
                 .end();
         }
 
-        const user = await User.findById(req.query.id);
+        const user = await getUser(req.query.id as string);
         if (!user) {
             res.status(400)
                 .json({ error: true, message: "User not found" })
@@ -106,8 +111,10 @@ router.get("/verify", async (req, res, next) => {
             return next();
         }
 
+        await User.findByIdAndUpdate(user._id, { $set: { verified: true }});
+
         user.verified = true;
-        await user.save();
+        await setUser(user);
 
         res.status(200).json({}).end();
         return next();

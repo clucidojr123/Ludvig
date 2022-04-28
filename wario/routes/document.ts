@@ -10,7 +10,7 @@ router.get(
     "/connect/:docid/:uid",
     isAuthenticated,
     isVerified,
-    async (req, res) => {
+    (req, res) => {
         const { docid, uid } = req.params;
         if (!docid || !uid) {
             res.status(400)
@@ -119,7 +119,7 @@ router.post(
     "/op/:docid/:uid",
     isAuthenticated,
     isVerified,
-    async (req, res) => {
+    (req, res) => {
         // VALIDATE ROUTE PARAMS
         const { docid, uid } = req.params;
         const Store = DataStore[docid];
@@ -194,7 +194,7 @@ router.post(
     "/presence/:docid/:uid",
     isAuthenticated,
     isVerified,
-    async (req, res) => {
+    (req, res) => {
         // VALIDATE ROUTE PARAMS
         const { docid, uid } = req.params;
         const Store = DataStore[docid];
@@ -299,7 +299,7 @@ router.get(
     "/get/:docid/:uid",
     isAuthenticated,
     isVerified,
-    async (req, res) => {
+    (req, res) => {
         // VALIDATE ROUTE PARAMS
         const { docid, uid } = req.params;
         const Store = DataStore[docid];
