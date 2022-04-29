@@ -15,7 +15,8 @@ import fetch from "node-fetch";
 import _ from "lodash";
 
 const PORT = process.env.PORT || 5001;
-const ES_URI = process.env.ES_URI || "http://elasticsearch:9200"
+const ES_URI = process.env.ES_URI || "http://elasticsearch:9200";
+const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:49153/ludvig";
 
 // Register Quill-Delta OT Type with ShareDB
 ShareDB.types.register(richText.type);
@@ -41,18 +42,17 @@ const indexDoc = async (docid: string, name: string, ops: any[]) => {
         },
         body: JSON.stringify({ name: name || "", content: stripped, suggest: stripped.split(" ")  })
     });
-    console.log(`Submitted ${name || ""} (${docid}) to ES: ${res.status}`)
 }
 
 // @ts-ignore
-const throttleIndex = _.memoizeThrottle(indexDoc, 2000);
+const throttleIndex = _.memoizeThrottle(indexDoc, 7000);
 
 async function main() {
     // Express Web Server
     const app = express();
     const server = http.createServer(app);
 
-    const db = new ShareDBMongo("mongodb://mongo:27017/ludvig")
+    const db = new ShareDBMongo(MONGO_URI);
 
     // Initialize ShareDB
     const share = new ShareDB({ db: db, presence: true });

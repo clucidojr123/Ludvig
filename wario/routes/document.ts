@@ -3,7 +3,10 @@ import { generateHTML, ShareDBConnection } from "../util/sharedb";
 import { isAuthenticated, isVerified } from "../util/passport";
 import { IUser } from "../models/user";
 import { DataStore } from "../util/connection";
+import { RedisInstance } from "../util/redis";
+import * as cookie from "cookie";
 
+const SERVER_NUM = process.env.SERVER_NUM || "1";
 const router = express.Router();
 
 router.get(
@@ -22,7 +25,7 @@ router.get(
             return;
         }
         const doc = ShareDBConnection.get("documents", docid);
-        doc.fetch((err) => {
+        doc.fetch(async (err) => {
             // If there is no doc with specified id
             if (!doc.type) {
                 res.status(400)
@@ -54,6 +57,7 @@ router.get(
                     }
                 });
             }
+            //const redisVersion = Number(await RedisInstance.v4.get(docid) || 10);
             const Store = DataStore[docid];
             let connect = Store.connections.find(
                 (val) => val.uid === uid
@@ -77,10 +81,17 @@ router.get(
                 }
             }
             Store.connections.push(connect);
+            // const serverCookie = cookie.serialize("server_num", SERVER_NUM, {
+            //     path: `/`,
+            //     httpOnly: true,
+            //     sameSite: "lax"
+            // })
             res.writeHead(200, {
                 "Content-Type": "text/event-stream",
                 "Cache-Control": "no-cache",
                 Connection: "keep-alive",
+                'X-Accel-Buffering': 'no'
+                // "Set-Cookie": serverCookie
             });
             res.flushHeaders();
             const initData = JSON.stringify({
@@ -117,13 +128,11 @@ router.get(
 
 router.post(
     "/op/:docid/:uid",
-    isAuthenticated,
-    isVerified,
-    (req, res) => {
+    async (req, res) => {
         // VALIDATE ROUTE PARAMS
         const { docid, uid } = req.params;
         const Store = DataStore[docid];
-        if (!docid || !uid || !Store) {
+        if (!docid || !uid) {
             res.status(400)
                 .json({
                     error: true,
@@ -132,11 +141,12 @@ router.post(
                 .end();
             return;
         }
+        //const redisVersion = Number(await RedisInstance.v4.get(docid) || 1);
         // GET CONNECTION WITH SPECIFIED UID
-        let connect = Store.connections.find(
-            (val) => val.uid === uid
-        );
-        if (!connect) {
+        // let connect = Store.connections.find(
+        //     (val) => val.uid === uid
+        // );
+        if (Store.version === null) {
             res.status(400)
                 .json({
                     error: true,
@@ -158,34 +168,62 @@ router.post(
             }
             // FETCH DOC WITH DOCID
             const doc = ShareDBConnection.get("documents", docid);
-            doc.fetch((err) => {
-                if (!doc.type || err) {
-                    res.status(400)
+            if (!doc.type) {
+                res.status(400)
+                .json({
+                    error: true,
+                    message: "No document exists with specified docid",
+                })
+                .end();
+                return;
+            } else if (Store.version !== version) {
+                res.status(200)
                     .json({
-                        error: true,
-                        message: "No document exists with specified docid",
+                        status: "retry",
                     })
                     .end();
-                    return;
-                } else if (Store.version !== version) {
-                    res.status(200)
-                        .json({
-                            status: "retry",
-                        })
-                        .end();
-                    return;
-                } else {
-                    console.log(
-                        `Submitting Ops from ${uid}: \n${JSON.stringify(
-                            req.body
-                        )}\n`
-                    );
-                    Store.version++;
-                    doc.submitOp(op, { source: uid });
-                    res.status(200).json({ status: "ok" }).end();
-                    return
-                }
-            });
+                return;
+            } else {
+                console.log(
+                    `Submitting Ops from ${uid}: \n${JSON.stringify(
+                        req.body
+                    )}\n`
+                );
+                Store.version++;
+                //await RedisInstance.v4.set(docid, redisVersion + 1);
+                doc.submitOp(op, { source: uid });
+                res.status(200).json({ status: "ok" }).end();
+                return
+            }
+            // doc.fetch(async (err) => {
+            //     if (!doc.type || err) {
+            //         res.status(400)
+            //         .json({
+            //             error: true,
+            //             message: "No document exists with specified docid",
+            //         })
+            //         .end();
+            //         return;
+            //     } else if (Store.version !== version) {
+            //         res.status(200)
+            //             .json({
+            //                 status: "retry",
+            //             })
+            //             .end();
+            //         return;
+            //     } else {
+            //         console.log(
+            //             `Submitting Ops from ${uid}: \n${JSON.stringify(
+            //                 req.body
+            //             )}\n`
+            //         );
+            //         Store.version++;
+            //         //await RedisInstance.v4.set(docid, redisVersion + 1);
+            //         doc.submitOp(op, { source: uid });
+            //         res.status(200).json({ status: "ok" }).end();
+            //         return
+            //     }
+            // });
         }
     }
 );
@@ -198,7 +236,7 @@ router.post(
         // VALIDATE ROUTE PARAMS
         const { docid, uid } = req.params;
         const Store = DataStore[docid];
-        if (!docid || !uid || !Store) {
+        if (!docid || !uid) {
             res.status(400)
                 .json({
                     error: true,
@@ -208,9 +246,10 @@ router.post(
             return;
         }
         // GET CONNECTION WITH SPECIFIED UID
-        let connect = Store.connections.find(
-            (val) => val.uid === uid
-        );
+        // let connect = Store.connections.find(
+        //     (val) => val.uid === uid
+        // );
+        let connect = true;
         if (!connect) {
             res.status(400)
                 .json({
@@ -232,23 +271,23 @@ router.post(
                 return;
             }
             const user = req.user as IUser;
-            Store.connections.forEach((val) => {
-                // SEND PRESENCE TO OTHER CONNECTIONS
-                if (!val.stream.writableEnded && val.uid !== uid) {
-                console.log(`Sending PRESENCE to ${val.uid}\n`);
-                val.stream.write(
-                    `data: ${JSON.stringify({
-                            presence: {
-                                id: uid,
-                                cursor: {
-                                    index,
-                                    length,
-                                    name: user.name,
-                                },
-                            },
-                    })}\n\n`
-                );
-            }});
+            // Store.connections.forEach((val) => {
+            //     // SEND PRESENCE TO OTHER CONNECTIONS
+            //     if (!val.stream.writableEnded && val.uid !== uid) {
+            //     console.log(`Sending PRESENCE to ${val.uid}\n`);
+            //     val.stream.write(
+            //         `data: ${JSON.stringify({
+            //                 presence: {
+            //                     id: uid,
+            //                     cursor: {
+            //                         index,
+            //                         length,
+            //                         name: user.name,
+            //                     },
+            //                 },
+            //         })}\n\n`
+            //     );
+            // }});
             res.status(200).json({}).end();
             return;
             // const docPresence = ShareDBConnection.getDocPresence(
@@ -303,7 +342,7 @@ router.get(
         // VALIDATE ROUTE PARAMS
         const { docid, uid } = req.params;
         const Store = DataStore[docid];
-        if (!docid || !uid || !Store) {
+        if (!docid || !uid) {
             res.status(400)
                 .json({
                     error: true,
@@ -312,10 +351,11 @@ router.get(
                 .end();
             return;
         }
-        // GET CONNECTION WITH SPECIFIED UID
-        let connect = Store.connections.find(
-            (val) => val.uid === uid
-        );
+        //GET CONNECTION WITH SPECIFIED UID
+        // let connect = Store.connections.find(
+        //     (val) => val.uid === uid
+        // );
+        let connect = true;
         if (!connect) {
             res.status(400)
                 .json({

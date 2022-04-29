@@ -6,15 +6,6 @@ services:
         restart: always
         ports:
             - 49153:27017
-    elasticsearch:
-        image: elasticsearch:8.1.2
-        ports:
-            - 9200:9200
-            - 9300:9300
-        environment:
-            - "discovery.type=single-node"
-            - "xpack.security.enabled=false"
-            - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
     s3:
         image: minio/minio
         ports:
@@ -24,17 +15,17 @@ services:
             - MINIO_ROOT_USER=ludvig
             - MINIO_ROOT_PASSWORD=castillo
         command: server /data --console-address :9001
-    luigi:
-        build: ./luigi
-        image: luigi
-        ports:
-            - 49154:5001
-        depends_on:
-            - mongo
-        environment:
-            - PORT=5001
-            - MONGO_URI=mongodb://mongo:27017/ludvig
-        command: npm run prod  
+    # luigi:
+    #     build: ./luigi
+    #     image: luigi
+    #     ports:
+    #         - 49154:5001
+    #     depends_on:
+    #         - mongo
+    #     environment:
+    #         - PORT=5001
+    #         - MONGO_URI=mongodb://mongo:27017/ludvig
+    #     command: npm run prod  
     # Running into issues trying to connect container with SMTP server :/, esp. w port 25 complications w/ UpCloud
     # wario:
     #     build: ./wario

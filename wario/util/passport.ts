@@ -1,10 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import bcrypt from "bcryptjs";
-import { NativeError } from "mongoose";
 import passport from "passport";
 import passportLocal from "passport-local";
-import User, { IUser } from "../models/user";
-import { getUser } from "./redis";
+import User from "../models/user";
 
 const LocalStrategy = passportLocal.Strategy;
 
@@ -12,12 +10,12 @@ passport.serializeUser<any, any>((_, user, done) => {
     done(undefined, user);
 });
 
-passport.deserializeUser(async (id, done) => {
-    const user = await getUser(id as string);
-    if (user) {
-        done(undefined, user);
+passport.deserializeUser(async (user, done) => {
+    if (!user) {
+        done(new Error("no user"), null)
     } else {
-        done(new Error("Unable to get user"), null);
+        // @ts-ignore
+        done(undefined, user);
     }
     // User.findById(id, (err: NativeError, user: IUser) => done(err, user));
 });

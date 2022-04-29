@@ -5,7 +5,9 @@ import { isAuthenticated, isVerified } from "../util/passport";
 import { DocumentName } from "../models/documentName";
 import { nanoid } from "nanoid";
 import { DataStore } from "../util/connection";
+import { RedisInstance } from "../util/redis";
 
+const SERVER_NUM = process.env.SERVER_NUM || 1;
 const router = express.Router();
 
 router.get("/list", isAuthenticated, isVerified, async (req, res) => {
@@ -41,7 +43,8 @@ router.post("/create", isAuthenticated, isVerified, async (req, res) => {
             .end();
         return;
     }
-    const docid = nanoid();
+    const docid = `${SERVER_NUM}${nanoid()}`;
+    //const docid = nanoid();
     const doc = ShareDBConnection.get("documents", docid);
     doc.subscribe((err) => {
         if (err) {
@@ -67,6 +70,7 @@ router.post("/create", isAuthenticated, isVerified, async (req, res) => {
                         return;
                     }
                     DataStore[docid] = { version: 1, connections: [] };
+                    //await RedisInstance.v4.set(docid, 1);
                     doc.submitSource = true;
                     doc.on('op', (op, source) => {
                         if (DataStore[docid]) {

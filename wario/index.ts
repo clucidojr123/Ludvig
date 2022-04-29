@@ -2,7 +2,7 @@ import http from "http";
 import cors from "cors";
 import express from "express";
 import session from "express-session";
-import MongoStore from "connect-mongo";
+import connectRedis from "connect-redis";
 import mongoose from "mongoose";
 import userRouter from "./routes/user";
 import documentRouter from "./routes/document";
@@ -14,13 +14,12 @@ import passport from "./util/passport";
 import * as Minio from 'minio';
 import { S3Instance, customPolicy } from "./util/s3";
 import { RedisInstance } from "./util/redis";
-import { createClient } from 'redis';
 import path from "path";
 
 const PORT = process.env.PORT || 3001;
-// const PORT = 80;
 const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:49153/ludvig";
 const S3_URI = process.env.S3_URI || "localhost";
+const RedisStore = connectRedis(session);
 
 async function main() {
     const app = express();
@@ -37,15 +36,16 @@ async function main() {
 
     // Make the bucket if there is none
     const bucketExists = await minioClient.bucketExists("doc-media");
-    if (!bucketExists) {
+    if (!bucketExists && PORT === "3001") {
         await minioClient.makeBucket("doc-media", "us-east-1");
         await minioClient.setBucketPolicy('doc-media', JSON.stringify(customPolicy));
     }
 
     S3Instance.initialize(minioClient);
 
+    // const redisClient = createClient({ legacyMode: true });
     RedisInstance.on('error', (err) => console.log('Redis Client Error', err));
-    RedisInstance.connect();
+    await RedisInstance.connect().catch(console.error);
 
     // Enable CORS and expose needed headers
     app.use(
@@ -82,33 +82,33 @@ async function main() {
             resave: false,
             saveUninitialized: false,
             secret: "Archibald Castillo",
-            // store: new MongoStore({
-            //     mongoUrl: MONGO_URI,
-            //     touchAfter: 24 * 3600, // Lazy update session
-            //     ttl: 14 * 24 * 60 * 60, // TTL = 14 Days
-            // }),
+            store: new RedisStore({ client: RedisInstance }),
         })
     );
 
-    // app.use(express.static(path.join(__dirname, "../rowlet", "build")));
+    //app.use(express.static(path.join(__dirname, "/../rowlet/build")));
+    //app.use(express.static("/root/Ludvig/rowlet/build/"));
     app.use(passport.initialize());
     app.use(passport.session());
 
     // app.get("/", (req, res, next) => {
-    //     res.sendFile(path.join(__dirname, "../rowlet", "build", "index.html"));
+    //     res.sendFile(path.join(__dirname, "/../rowlet/build", "index.html"));
+    //     //res.sendFile("/root/Ludvig/rowlet/build/index.html");
     // });
 
     // app.get("/home", (req, res, next) => {
-    //     res.sendFile(path.join(__dirname, "../rowlet", "build", "index.html"));
+    //     res.sendFile(path.join(__dirname, "/../rowlet/build", "index.html"));
+    //     //res.sendFile("/root/Ludvig/rowlet/build/index.html");
     // });
 
     // app.get("/doc/edit/:id", (req, res, next) => {
-    //     res.sendFile(path.join(__dirname, "../rowlet", "build", "index.html"));
+    //     res.sendFile(path.join(__dirname, "/../rowlet/build", "index.html"));
+    //     //res.sendFile("/root/Ludvig/rowlet/build/index.html");
     // });
 
-    app.get("/", (req, res, next) => {
-        res.send("Hello World").end();
-    });
+    // app.get("/", (req, res, next) => {
+    //     res.send("Hello World").end();
+    // });
 
     // Add routes
     app.use("/users", userRouter);

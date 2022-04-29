@@ -5,7 +5,7 @@ declare module "express-session" {
         cookie: Cookie;
         passport: any;
         lastModified: Date;
-        connections: string[];
+        server: number;
     }
 }
 

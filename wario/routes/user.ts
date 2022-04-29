@@ -4,7 +4,6 @@ import passport, { isAuthenticated } from "../util/passport";
 import User, { IUser } from "../models/user";
 import { sendVerifyEmail, sendTestEmail } from "../util/email";
 import { verifyToken } from "../util/token";
-import { getUser, setUser } from "../util/redis";
 
 const router = express.Router();
 
@@ -74,7 +73,7 @@ router.post("/signup", async (req, res, next) => {
         });
 
         await user.save();
-        await sendVerifyEmail(user);
+        // await sendVerifyEmail(user);
 
         res.status(200).json({}).end();
     } catch (err) {
@@ -94,7 +93,7 @@ router.get("/verify", async (req, res, next) => {
                 .end();
         }
 
-        const user = await getUser(req.query.id as string);
+        const user = await User.findById(req.query.id as string);
         if (!user) {
             res.status(400)
                 .json({ error: true, message: "User not found" })
@@ -114,7 +113,7 @@ router.get("/verify", async (req, res, next) => {
         await User.findByIdAndUpdate(user._id, { $set: { verified: true }});
 
         user.verified = true;
-        await setUser(user);
+        // await setUser(user);
 
         res.status(200).json({}).end();
         return next();
