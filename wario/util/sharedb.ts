@@ -10,9 +10,6 @@ const LUIGI_URI = process.env.LUIGI_URI || "ws://localhost:49154";
 
 export const wsInstance = new WebSocket(LUIGI_URI);
 
-// export const share = new ShareDBBack({ presence: true });
-// export const ShareDBConnection = share.connect();
-
 // @ts-ignore
 export const ShareDBConnection = new ShareDB.Connection(wsInstance);
 

@@ -1,14 +1,5 @@
 import express, { Response } from "express";
 
-declare module "express-session" {
-    interface SessionData {
-        cookie: Cookie;
-        passport: any;
-        lastModified: Date;
-        server: number;
-    }
-}
-
 interface Connection {
     uid: string;
     docid: string;

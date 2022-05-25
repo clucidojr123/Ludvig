@@ -2,6 +2,13 @@ import nodemailer from "nodemailer";
 import { IUser } from "../models/user";
 import { generateToken } from "./token";
 
+/*
+
+NOTE: 
+Email functionality is currently not in use
+
+*/
+
 const transporter = nodemailer.createTransport({
     host: "localhost",
     port: 25,

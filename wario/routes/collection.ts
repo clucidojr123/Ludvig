@@ -5,9 +5,7 @@ import { isAuthenticated, isVerified } from "../util/passport";
 import { DocumentName } from "../models/documentName";
 import { nanoid } from "nanoid";
 import { DataStore } from "../util/connection";
-import { RedisInstance } from "../util/redis";
 
-const SERVER_NUM = process.env.SERVER_NUM || 1;
 const router = express.Router();
 
 router.get("/list", isAuthenticated, isVerified, async (req, res) => {
@@ -16,7 +14,7 @@ router.get("/list", isAuthenticated, isVerified, async (req, res) => {
     const shareDocs = await docCollection.find({}).sort({ "_m.mtime": -1 }).limit(10).toArray();
     const docList = await Promise.all(shareDocs.map(async (val) => {
         const res = await DocumentName.findOne({ id: val._id });
-        return { name: res?.name || "NULL", id: val._id }
+        return { name: res?.name || "Unnamed Document", id: val._id }
     }));
     if (docList) {
         res.json(docList).end();
@@ -43,8 +41,7 @@ router.post("/create", isAuthenticated, isVerified, async (req, res) => {
             .end();
         return;
     }
-    const docid = `${SERVER_NUM}${nanoid()}`;
-    //const docid = nanoid();
+    const docid = nanoid();
     const doc = ShareDBConnection.get("documents", docid);
     doc.subscribe((err) => {
         if (err) {
