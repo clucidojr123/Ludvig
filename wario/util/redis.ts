@@ -1,11 +1,14 @@
-import { createClient } from 'redis';
+import { createClient } from "redis";
 import User, { IUser } from "../models/user";
 
-export const RedisInstance = createClient({ legacyMode: true });
+export const RedisInstance = createClient({
+    url: "redis://redis:6379",
+    legacyMode: true,
+});
 
 export const setUser = async (user: IUser) => {
     await RedisInstance.set("lud" + user._id, JSON.stringify(user));
-}
+};
 
 export const getUser = async (id: string): Promise<IUser | false> => {
     const res = await RedisInstance.get("lud" + id);
@@ -20,4 +23,4 @@ export const getUser = async (id: string): Promise<IUser | false> => {
             return user;
         }
     }
-}
+};

@@ -1,59 +1,72 @@
 version: '3'
 
 services:
+    traefik:
+        image: traefik:v2.7
+        command: --api.insecure=true --providers.docker
+        ports:
+            - ${APP_PORT:-3000}:80
+            - 8080:8080
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
     mongo:
         image: mongo
         ports:
-            - 49153:27017
-    elasticsearch:
-        image: elasticsearch:8.1.2
+            - ${MONGO_PORT:-27017}:27017
+    redis:
+        image: redis
         ports:
-            - 9200:9200
-            - 9300:9300
-        environment:
-            - "discovery.type=single-node"
-            - "xpack.security.enabled=false"
-    s3:
+            - ${REDIS_PORT:-6379}:6379
+        command: redis-server
+    minio:
         image: minio/minio
         ports:
-            - 9000:9000
-            - 9001:9001
+            - ${MINIO_PORT:-9000}:9000
+            - ${MINIO_CONSOLE_PORT:-9001}:9001
         environment:
-            - MINIO_ROOT_USER=ludvig
-            - MINIO_ROOT_PASSWORD=castillo
-        command: server /data --console-address :9001
+            - MINIO_ROOT_USER=${MINIO_ROOT_USER:-ludvig}
+            - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-castillo}
+        labels:
+            - traefik.http.routers.minio.rule=Host(`media.${APP_ORIGIN:-localhost}`)
+            - traefik.http.services.minio.loadbalancer.server.port=9000
+        command: server /data --console-address :${MINIO_CONSOLE_PORT:-9001}
     luigi:
         build: ./luigi
-        image: luigi
+        image: luigi-dev
         volumes:
             - ./luigi:/usr/luigi
         ports:
-            - 49154:5001
+            - ${LUIGI_PORT:-5001}:5001
         depends_on:
             - mongo
         environment:
             - PORT=5001
             - MONGO_URI=mongodb://mongo:27017/ludvig
-        command: npm run dev  
+        command: npm run dev
     wario:
         build: ./wario
-        image: wario
+        image: wario-dev
         volumes:
             - ./wario:/usr/wario
         ports:
-            - 3001:3001
+            - ${WARIO_PORT:-3001}:3001
         depends_on:
             - mongo
             - luigi
-            - s3
+            - minio
         environment:
             - PORT=3001
             - LUIGI_URI=ws://luigi:5001
-            - ORIGIN=http://localhost:3001
+            - ORIGIN=http://${APP_ORIGIN:-localhost}:${APP_PORT:-3000}
             - MONGO_URI=mongodb://mongo:27017/ludvig
-            - S3_URI=s3
+            - S3_URI=minio
+        labels:
+            - traefik.http.middlewares.wario.stripprefix.prefixes=/api
+            - traefik.http.routers.wario.middlewares=wario
+            - traefik.http.routers.wario.rule=PathPrefix(`/api`)
+            - traefik.http.services.wario.loadbalancer.server.port=3001
         command: npm run dev
-    rowlet-dev:
+    rowlet:
         build: 
             context: ./rowlet
             dockerfile: Dockerfile.development
@@ -61,8 +74,12 @@ services:
         volumes:
             - ./rowlet:/usr/rowlet
         ports:
-            - 3000:3000
+            - ${ROWLET_PORT:-6001}:3000
         environment:
-            - REACT_APP_WARIO_URI=http://localhost:3001
-            - REACT_APP_S3_ACCESS_URI=http://localhost:3001/media/access
+            - REACT_APP_WARIO_URI=http://${APP_ORIGIN:-localhost}:${APP_PORT:-3000}/api
+            # TODO env variable for bucket name
+            - REACT_APP_S3_ACCESS_URI=http://media.${APP_ORIGIN:-localhost}:${APP_PORT:-3000}/doc-media
+        labels:
+            - traefik.http.routers.rowlet.rule=Host(`${APP_ORIGIN:-localhost}`)
+            - traefik.http.services.rowlet.loadbalancer.server.port=3000
         command: npm start
