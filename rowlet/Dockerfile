@@ -12,6 +12,13 @@ RUN npm ci
 # Copy over repo
 COPY . .
 
+# Get build arguments and set environment variables
+ARG WARIO_URI
+ENV REACT_APP_WARIO_URI=$WARIO_URI
+
+ARG S3_ACCESS_URI
+ENV REACT_APP_S3_ACCESS_URI=$S3_ACCESS_URI
+
 # Build Application
 RUN npm run build
 
